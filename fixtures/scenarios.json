@@ -1,0 +1,32 @@
+{
+  "A-1001": {
+    "outcome": "promise_to_pay",
+    "promise_date": "2026-09-05",
+    "turns": [
+      {"speaker": "recipient", "text": "Yes, this is me. I know about the balance."},
+      {"speaker": "agent", "text": "Would you like to set a date to pay?"},
+      {"speaker": "recipient", "text": "I can pay it on September fifth."},
+      {"speaker": "agent", "text": "Noted, September fifth. Thank you. Goodbye."}
+    ]
+  },
+  "A-1005": {
+    "outcome": "opt_out",
+    "turns": [
+      {"speaker": "recipient", "text": "Who is this?"},
+      {"speaker": "agent", "text": "An automated assistant calling about your past-due account."},
+      {"speaker": "recipient", "text": "Stop calling me. I do not want these calls."}
+    ]
+  },
+  "A-1006": {
+    "outcome": "no_answer",
+    "answered": false
+  },
+  "A-1007": {
+    "outcome": "dispute",
+    "turns": [
+      {"speaker": "recipient", "text": "That balance is not mine. I already closed that account."},
+      {"speaker": "agent", "text": "Understood. I will record that you dispute this balance."},
+      {"speaker": "recipient", "text": "Yes, please do."}
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+[project]
+name = "cleared-to-call"
+version = "0.1.0"
+description = "A consent-and-compliance gate that decides whether an outbound collection call is allowed to happen."
+requires-python = ">=3.11"
+dependencies = [
+  "tzdata>=2024.1; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+demo = [
+  "fastapi>=0.110",
+  "uvicorn>=0.27",
+  "jinja2>=3.1",
+  "python-multipart>=0.0.9",
+]
+live = [
+  "fastmcp>=3.2,<4",
+]
+dev = [
+  "pytest>=8.0",
+  "httpx>=0.27",
+]
+
+[project.scripts]
+cleared-to-call = "cleared.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["cleared"]
+
+[tool.setuptools.package-data]
+cleared = ["policy.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

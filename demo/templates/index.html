@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cleared to Call</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --line: #272e38;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --allow: #3fb950;
+    --block: #f85149;
+    --warn: #d29922;
+    --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 28px 32px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-size: 30px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  h2 { font-size: 18px; margin: 32px 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .tagline { color: var(--muted); margin: 0 0 20px; font-size: 17px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; }
+  .bar form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  label { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  input[type=text] {
+    background: #0b0f14; color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 8px 10px; font: 15px ui-monospace, Consolas, monospace; min-width: 260px;
+  }
+  button {
+    background: #21262d; color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 9px 16px; font-size: 15px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.live { background: #4a1414; border-color: var(--block); color: #ffb4ae; }
+  .stat { min-width: 92px; }
+  .stat .n { font-size: 30px; font-weight: 600; line-height: 1.1; }
+  .stat .k { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .n.allow { color: var(--allow); }
+  .n.block { color: var(--block); }
+  .n.warn { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); font-weight: 600; padding: 0 12px 10px; border-bottom: 1px solid var(--line);
+  }
+  td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr.blocked { background: rgba(248, 81, 73, 0.07); }
+  tr.optout { background: rgba(210, 153, 34, 0.09); }
+  .tag {
+    display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 12px;
+    font-weight: 600; letter-spacing: 0.04em;
+  }
+  .tag.allow { background: rgba(63, 185, 80, 0.16); color: var(--allow); }
+  .tag.block { background: rgba(248, 81, 73, 0.16); color: var(--block); }
+  .reason { color: var(--block); font-weight: 600; }
+  .outcome { color: var(--allow); }
+  .outcome.optout { color: var(--warn); }
+  code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 14px; }
+  .muted { color: var(--muted); }
+  .why { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .flash { border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; }
+  .flash.ok { background: rgba(63, 185, 80, 0.12); border: 1px solid rgba(63, 185, 80, 0.4); }
+  .flash.bad { background: rgba(248, 81, 73, 0.12); border: 1px solid rgba(248, 81, 73, 0.4); }
+  .chain { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  .chain td { padding: 7px 12px; }
+  .ok { color: var(--allow); }
+  .bad { color: var(--block); }
+  .transcript { margin: 8px 0 0; padding: 12px 14px; background: #0b0f14; border-radius: 8px; border: 1px solid var(--line); }
+  .turn { margin: 0 0 6px; font-size: 14px; }
+  .turn:last-child { margin-bottom: 0; }
+  .turn .who { color: var(--muted); display: inline-block; min-width: 78px; }
+  .turn.revoked .what { color: var(--warn); font-weight: 600; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<h1>Cleared to Call</h1>
+<p class="tagline">Every call provably lawful &mdash; or provably refused.</p>
+
+{% if message %}<div class="flash ok">{{ message }}</div>{% endif %}
+{% if error %}<div class="flash bad">{{ error }}</div>{% endif %}
+
+<div class="panel bar">
+  <div>
+    <div class="stat"><div class="k">Policy</div></div>
+    <div class="mono">{{ policy.policy_id }} v{{ policy.policy_version }}</div>
+    <div class="why">{{ policy.jurisdiction }} &middot; call window {{ policy.window_label }} local to the recipient</div>
+  </div>
+  <form method="post" action="/run">
+    <div>
+      <label for="now">Evaluation clock (UTC)</label>
+      <input type="text" id="now" name="now" value="{{ now_input }}" />
+    </div>
+    <button type="submit">Re-run batch (dry run)</button>
+    <button type="submit" name="fresh" value="1">Reset and re-run</button>
+  </form>
+</div>
+
+{% if summary %}
+<div class="panel bar" style="margin-top:16px">
+  <div class="stat"><div class="n">{{ summary.accounts }}</div><div class="k">Accounts</div></div>
+  <div class="stat"><div class="n block">{{ summary.blocked }}</div><div class="k">Refused</div></div>
+  <div class="stat"><div class="n allow">{{ summary.cleared }}</div><div class="k">Cleared</div></div>
+  <div class="stat"><div class="n warn">{{ summary.opt_outs }}</div><div class="k">Opt-outs</div></div>
+  <div class="stat">
+    <div class="n {{ 'allow' if verification.ok else 'block' }}">{{ audit_total }}</div>
+    <div class="k">Audit entries</div>
+  </div>
+  <div>
+    <div class="k">Chain</div>
+    <div class="{{ 'ok' if verification.ok else 'bad' }}">
+      {% if verification.ok %}verified{% else %}BROKEN at entry {{ verification.first_bad_index }}{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<h2>Pre-dial decisions</h2>
+<div class="panel">
+<table>
+  <thead>
+    <tr>
+      <th>Account</th><th>Number</th><th>Local time</th><th>Gate</th>
+      <th>Reason / outcome</th><th>Disclosed</th><th>Audit</th>
+      {% if allow_live %}<th></th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+  {% for record in records %}
+    {% set result = record.result %}
+    <tr class="{% if not record.decision.allowed %}blocked{% elif result.opt_out %}optout{% endif %}">
+      <td>
+        <strong>{{ record.account.account_id }}</strong>
+        <div class="why">{{ record.account.display_name }} &middot; {{ "%.2f"|format(record.account.amount_due) }} {{ record.account.currency }}</div>
+      </td>
+      <td class="mono">{{ record.account.masked_phone }}</td>
+      <td>
+        <span class="mono">{{ record.decision.local_time or "unknown" }}</span>
+        <div class="why">{{ record.account.timezone }}</div>
+      </td>
+      <td>
+        {% if record.decision.allowed %}
+          <span class="tag allow">ALLOW</span>
+        {% else %}
+          <span class="tag block">BLOCK</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if result.block_reason %}
+          <span class="reason">{{ result.block_reason }}</span>
+          <div class="why">
+            {%- for rule in record.decision.rules if not rule.passed -%}
+              {{ rule.rule_id }} {{ rule.name }}: {{ rule.detail }}{% if not loop.last %}<br />{% endif %}
+            {%- endfor -%}
+          </div>
+        {% else %}
+          <span class="outcome {% if result.opt_out %}optout{% endif %}">{{ result.outcome }}</span>
+          {% if result.promise_date %}<div class="why">promised {{ result.promise_date }}</div>{% endif %}
+          {% if result.opt_out %}<div class="why">number added to the suppression list</div>{% endif %}
+          {% if record.error %}<div class="why">{{ record.error }}</div>{% endif %}
+        {% endif %}
+      </td>
+      <td>{% if result.disclosure_given %}<span class="ok">yes</span>{% else %}<span class="muted">&mdash;</span>{% endif %}</td>
+      <td class="mono muted">{{ result.audit_ref }}</td>
+      {% if allow_live %}
+      <td>
+        {% if record.decision.allowed %}
+        <form method="post" action="/call/{{ record.account.account_id }}"
+              onsubmit="return confirm('Place a REAL call to {{ record.account.masked_phone }}?');">
+          <button class="live" type="submit">Call for real</button>
+        </form>
+        {% endif %}
+      </td>
+      {% endif %}
+    </tr>
+    {% if record.transcript %}
+    <tr class="{% if result.opt_out %}optout{% endif %}">
+      <td colspan="{{ 8 if allow_live else 7 }}">
+        <div class="transcript">
+          {% for turn in record.transcript %}
+          <p class="turn {% if record.revocation and loop.index0 == record.revocation.turn_index %}revoked{% endif %}">
+            <span class="who">{{ turn.speaker }}</span><span class="what">{{ turn.text }}</span>
+          </p>
+          {% endfor %}
+          {% if record.revocation %}
+          <p class="turn"><span class="who">gate</span><span class="what" style="color:var(--warn)">
+            revocation matched "{{ record.revocation.matched_phrase }}" &rarr; call ended, outcome opt_out, number suppressed
+          </span></p>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endif %}
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<div class="cols">
+  <div>
+    <h2>Audit chain</h2>
+    <div class="panel">
+      <table class="chain">
+        <thead><tr><th>Ref</th><th>Account</th><th>Decision</th><th>Outcome</th><th>prev &rarr; hash</th></tr></thead>
+        <tbody>
+        {% for entry in audit_entries %}
+          <tr>
+            <td>{{ entry.audit_ref }}</td>
+            <td>{{ entry.account_id }}</td>
+            <td class="{{ 'ok' if entry.decision == 'allow' else 'bad' }}">
+              {{ entry.decision }}{% if entry.block_reason %} &middot; {{ entry.block_reason }}{% endif %}
+            </td>
+            <td class="muted">{{ entry.outcome }}</td>
+            <td class="muted">{{ entry.prev_hash[:8] }} &rarr; {{ entry.hash[:8] }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <p class="why">
+        {{ audit_total }} entries.
+        {% if verification.ok %}
+          Chain verified from genesis: no entry has been edited, deleted, or reordered.
+        {% else %}
+          Chain BROKEN at entry {{ verification.first_bad_index }}: {{ verification.reason }}
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div>
+    <h2>Suppression list</h2>
+    <div class="panel">
+      <table class="chain">
+        <thead><tr><th>Number</th><th>Reason</th><th>Source</th><th>Added</th></tr></thead>
+        <tbody>
+        {% for entry in suppressed %}
+          <tr>
+            <td>{{ entry.to_masked_dict().phone_e164 }}</td>
+            <td>{{ entry.reason }}</td>
+            <td class="muted">{{ entry.source }}</td>
+            <td class="muted">{{ entry.added_at[:10] }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <p class="why">Rule 3 reads this list before every dial. Rule 5 writes to it the moment someone opts out.</p>
+    </div>
+
+    <h2>The five rules</h2>
+    <div class="panel">
+      <table class="chain">
+        <tbody>
+        {% for rule in policy.rules %}
+          <tr>
+            <td><strong>{{ rule.id }}</strong></td>
+            <td>{{ rule.name }}</td>
+            <td class="muted">{{ rule.stage }}</td>
+            <td class="muted">{{ rule.temporal_form }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <p class="why">
+        {% if run and run.dry_run %}Dry run: the gate, the disclosure check, the opt-out detection and the audit
+        chain all ran for real. Only the dialling was simulated.{% endif %}
+      </p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
