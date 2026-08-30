@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,7 +31,29 @@ from cleared.suppression import SuppressionList
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures"
-RUNTIME = ROOT / "runtime"
+
+# A serverless host (Vercel, Lambda) gives you a read-only filesystem with one
+# writable temp directory. The audit log and suppression list have to be written
+# somewhere, so fall back rather than crash on the first request.
+SERVERLESS = bool(os.environ.get("VERCEL") or os.environ.get("CLEARED_PUBLIC_DEMO"))
+
+
+def _runtime_dir() -> Path:
+    override = os.environ.get("CLEARED_RUNTIME_DIR")
+    if override:
+        return Path(override)
+    candidate = ROOT / "runtime"
+    try:
+        candidate.mkdir(parents=True, exist_ok=True)
+        probe = candidate / ".writable"
+        probe.write_text("", encoding="utf-8")
+        probe.unlink()
+        return candidate
+    except OSError:
+        return Path(tempfile.gettempdir()) / "cleared-to-call"
+
+
+RUNTIME = _runtime_dir()
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
 DEFAULT_NOW = "2026-08-28T13:30:00Z"
@@ -63,7 +86,10 @@ class DemoState:
         return parse_iso8601(self.now_input)
 
 
-state = DemoState(allow_live=os.environ.get("ALLOW_LIVE", "").lower() in {"1", "true", "yes"})
+# Live calling is never available on a public deployment. A URL anyone can open
+# must not have a button that dials a real phone and spends real credits.
+_live_requested = os.environ.get("ALLOW_LIVE", "").lower() in {"1", "true", "yes"}
+state = DemoState(allow_live=_live_requested and not SERVERLESS)
 app = FastAPI(title="Cleared to Call", docs_url=None, redoc_url=None)
 
 
@@ -151,6 +177,11 @@ def run_endpoint(now: str = Form(default=DEFAULT_NOW), fresh: str = Form(default
 @app.post("/call/{account_id}")
 def call_endpoint(account_id: str) -> RedirectResponse:
     """Place one real CALL-E call for an account the gate already cleared."""
+    if SERVERLESS:
+        raise HTTPException(
+            status_code=403,
+            detail="this is a public read-only demo: live calling is disabled here.",
+        )
     if not state.allow_live:
         raise HTTPException(
             status_code=403,

@@ -35,5 +35,9 @@ packages = ["cleared"]
 [tool.setuptools.package-data]
 cleared = ["policy.json"]
 
+[tool.vercel]
+# Vercel serves the demo view. The gate is a library and has no entrypoint.
+entrypoint = "demo.app:app"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

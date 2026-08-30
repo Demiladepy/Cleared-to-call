@@ -95,3 +95,61 @@ def test_an_unknown_account_cannot_be_called(client):
         assert client.post("/call/A-9999").status_code == 404
     finally:
         demo_app.state.allow_live = False
+
+
+# Deployment safety: a public URL must not be able to dial anyone.
+
+
+def reload_demo(monkeypatch, **env):
+    """Re-import the demo module with a given environment.
+
+    SERVERLESS and the runtime directory are decided at import time, so a test
+    that wants to exercise them has to reload the module.
+    """
+    import importlib
+
+    for key in ("VERCEL", "CLEARED_PUBLIC_DEMO", "ALLOW_LIVE", "CLEARED_RUNTIME_DIR"):
+        monkeypatch.delenv(key, raising=False)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    return importlib.reload(demo_app)
+
+
+def test_live_calling_is_refused_on_a_serverless_host(tmp_path, monkeypatch):
+    module = reload_demo(
+        monkeypatch, VERCEL="1", ALLOW_LIVE="1", CLEARED_RUNTIME_DIR=str(tmp_path)
+    )
+    try:
+        assert module.SERVERLESS is True
+        # Even with ALLOW_LIVE=1 explicitly set, the switch stays off.
+        assert module.state.allow_live is False
+
+        client = TestClient(module.app)
+        client.get("/")
+        response = client.post("/call/A-1001")
+        assert response.status_code == 403
+        assert "public read-only demo" in response.json()["detail"]
+    finally:
+        reload_demo(monkeypatch)
+
+
+def test_the_runtime_directory_falls_back_when_the_repo_is_read_only(tmp_path, monkeypatch):
+    """A serverless filesystem is read-only apart from the temp directory."""
+    module = reload_demo(monkeypatch, CLEARED_RUNTIME_DIR=str(tmp_path / "elsewhere"))
+    try:
+        assert module.RUNTIME == tmp_path / "elsewhere"
+        client = TestClient(module.app)
+        assert client.get("/").status_code == 200
+        assert (tmp_path / "elsewhere" / "audit.jsonl").is_file()
+    finally:
+        reload_demo(monkeypatch)
+
+
+def test_the_deployed_demo_still_shows_every_refusal(tmp_path, monkeypatch):
+    module = reload_demo(monkeypatch, VERCEL="1", CLEARED_RUNTIME_DIR=str(tmp_path))
+    try:
+        body = TestClient(module.app).get("/").text
+        for reason in ("OUTSIDE_CALL_WINDOW", "NO_CONSENT", "ON_SUPPRESSION_LIST"):
+            assert reason in body
+    finally:
+        reload_demo(monkeypatch)
