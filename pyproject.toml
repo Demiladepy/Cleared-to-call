@@ -3,16 +3,20 @@ name = "cleared-to-call"
 version = "0.1.0"
 description = "A consent-and-compliance gate that decides whether an outbound collection call is allowed to happen."
 requires-python = ">=3.11"
+# The gate itself (cleared/) needs only the standard library plus a timezone
+# database. The web dependencies live here rather than in an extra because the
+# deployment host installs this list, and an optional extra it does not know to
+# ask for is how the deployed function came to crash on import.
 dependencies = [
-  "tzdata>=2024.1; sys_platform == 'win32'",
+  "tzdata>=2024.1",
+  "fastapi>=0.110",
+  "jinja2>=3.1",
+  "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
 demo = [
-  "fastapi>=0.110",
   "uvicorn>=0.27",
-  "jinja2>=3.1",
-  "python-multipart>=0.0.9",
 ]
 live = [
   "fastmcp>=3.2,<4",

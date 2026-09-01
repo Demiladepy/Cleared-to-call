@@ -225,3 +225,46 @@ def test_the_deployment_entrypoint_exposes_the_app():
 
     config = tomllib.loads((demo_app.ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert config["tool"]["vercel"]["entrypoint"] == "demo.entry:app"
+
+
+def test_the_startup_fallback_needs_nothing_but_the_standard_library():
+    """The fallback must survive the very failure it exists to report.
+
+    An earlier version built the error page out of FastAPI, so a missing FastAPI
+    killed the fallback on the same import as the app and the host served its
+    own opaque error instead.
+    """
+    source = (demo_app.ROOT / "demo" / "entry.py").read_text(encoding="utf-8")
+    fallback = source[source.index("def _stdlib_asgi_app") : source.index("try:\n    from demo.app")]
+    for forbidden in ("fastapi", "starlette", "jinja2", "uvicorn"):
+        assert forbidden not in fallback.lower(), f"the fallback imports {forbidden}"
+
+
+def test_the_startup_fallback_serves_the_report():
+    import asyncio
+
+    from demo.entry import _stdlib_asgi_app
+
+    application = _stdlib_asgi_app("boom: something went wrong")
+    sent = []
+
+    async def drive():
+        await application(
+            {"type": "http", "method": "GET", "path": "/"},
+            lambda: asyncio.sleep(0),
+            lambda message: sent.append(message) or asyncio.sleep(0),
+        )
+
+    asyncio.run(drive())
+    assert sent[0]["status"] == 500
+    assert b"boom: something went wrong" in sent[1]["body"]
+
+
+def test_the_web_dependencies_are_installed_not_optional():
+    """A host installing this project must get everything the app imports."""
+    import tomllib
+
+    config = tomllib.loads((demo_app.ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    installed = " ".join(config["project"]["dependencies"]).lower()
+    for package in ("fastapi", "jinja2", "python-multipart", "tzdata"):
+        assert package in installed, f"{package} is not in [project] dependencies"
