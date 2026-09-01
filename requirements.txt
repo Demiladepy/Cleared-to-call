@@ -3,3 +3,7 @@
 fastapi>=0.110
 jinja2>=3.1
 python-multipart>=0.0.9
+
+# Rule 1 resolves IANA zones. A slim Linux image may ship no zoneinfo
+# database, and a missing one would silently block every account.
+tzdata>=2024.1

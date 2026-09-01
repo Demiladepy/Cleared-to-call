@@ -153,3 +153,43 @@ def test_the_deployed_demo_still_shows_every_refusal(tmp_path, monkeypatch):
             assert reason in body
     finally:
         reload_demo(monkeypatch)
+
+
+def test_healthz_reports_a_working_deployment(client):
+    payload = client.get("/healthz").json()
+    assert payload["ok"] is True
+    assert payload["missing_files"] == []
+    assert payload["zoneinfo"] is True
+
+
+def test_a_deployment_missing_its_data_files_says_which(client, monkeypatch):
+    """Vercel traces imports, not data files. This is the failure that causes."""
+    monkeypatch.setattr(
+        demo_app,
+        "REQUIRED_RUNTIME_FILES",
+        (demo_app.ROOT / "cleared" / "policy.json", demo_app.ROOT / "fixtures" / "gone.json"),
+    )
+    health = client.get("/healthz")
+    assert health.status_code == 503
+    assert health.json()["missing_files"] == ["fixtures/gone.json"]
+
+    page = client.get("/")
+    assert page.status_code == 503
+    assert "fixtures/gone.json" in page.text
+    assert "includeFiles" in page.text
+
+
+def test_the_bundle_config_ships_every_required_runtime_file():
+    """vercel.json must name each file the app reads at request time."""
+    import json
+
+    config = json.loads((demo_app.ROOT / "vercel.json").read_text(encoding="utf-8"))
+    included = config["functions"]["demo/app.py"]["includeFiles"]
+    for path in demo_app.REQUIRED_RUNTIME_FILES:
+        relative = str(path.relative_to(demo_app.ROOT)).replace("\\", "/")
+        covered = relative in included or any(
+            relative.startswith(prefix)
+            for prefix in ("demo/templates/",)
+            if f"{prefix}**" in included
+        )
+        assert covered, f"vercel.json does not ship {relative}"

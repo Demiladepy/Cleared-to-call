@@ -54,7 +54,39 @@ def _runtime_dir() -> Path:
 
 
 RUNTIME = _runtime_dir()
-TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
+TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
+TEMPLATES = Jinja2Templates(directory=str(TEMPLATE_DIR))
+
+# These are read at request time and none of them is an import, so a bundler
+# that traces imports will not ship them unless told to. When one is missing the
+# app should say which, not raise a stack trace at a visitor.
+REQUIRED_RUNTIME_FILES = (
+    ROOT / "cleared" / "policy.json",
+    FIXTURES / "accounts.json",
+    FIXTURES / "scenarios.json",
+    FIXTURES / "suppression.jsonl",
+    TEMPLATE_DIR / "index.html",
+)
+
+
+def missing_runtime_files() -> list[str]:
+    return [
+        str(path.relative_to(ROOT)).replace("\\", "/")
+        for path in REQUIRED_RUNTIME_FILES
+        if not path.is_file()
+    ]
+
+
+def zoneinfo_available() -> bool:
+    """Rule 1 needs a zoneinfo database. A slim image may not have one."""
+    try:
+        from zoneinfo import ZoneInfo
+
+        ZoneInfo("America/New_York")
+        return True
+    except Exception:
+        return False
+
 
 DEFAULT_NOW = "2026-08-28T13:30:00Z"
 
@@ -146,8 +178,37 @@ def view_model() -> dict[str, Any]:
     }
 
 
+@app.get("/healthz")
+def healthz() -> JSONResponse:
+    """Everything the deployment needs, in one request."""
+    missing = missing_runtime_files()
+    payload = {
+        "ok": not missing and zoneinfo_available(),
+        "missing_files": missing,
+        "zoneinfo": zoneinfo_available(),
+        "runtime_dir": str(RUNTIME),
+        "runtime_writable": os.access(RUNTIME.parent, os.W_OK),
+        "serverless": SERVERLESS,
+        "live_calling": state.allow_live,
+    }
+    return JSONResponse(payload, status_code=200 if payload["ok"] else 503)
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
+    missing = missing_runtime_files()
+    if missing:
+        # A deployment that shipped the code but not its data files. Say exactly
+        # which files, rather than letting a FileNotFoundError reach the visitor.
+        return HTMLResponse(
+            "<h1>Cleared to Call is not fully deployed</h1>"
+            "<p>The application started but these files were not included in the "
+            "bundle:</p><ul>"
+            + "".join(f"<li><code>{name}</code></li>" for name in missing)
+            + "</ul><p>See <code>vercel.json</code> &rarr; "
+            "<code>functions.includeFiles</code>.</p>",
+            status_code=503,
+        )
     if state.run is None:
         # First paint always starts from the seeded state, so the demo is the
         # same batch every time. Re-running from the page keeps state, which is
