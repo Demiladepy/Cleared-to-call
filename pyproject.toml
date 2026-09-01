@@ -36,8 +36,9 @@ packages = ["cleared"]
 cleared = ["policy.json"]
 
 [tool.vercel]
-# Vercel serves the demo view. The gate is a library and has no entrypoint.
-entrypoint = "demo.app:app"
+# demo/entry.py puts the repository root on sys.path and reports any import
+# failure as a readable page rather than an opaque 500.
+entrypoint = "demo.entry:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

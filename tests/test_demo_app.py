@@ -179,17 +179,49 @@ def test_a_deployment_missing_its_data_files_says_which(client, monkeypatch):
     assert "includeFiles" in page.text
 
 
-def test_the_bundle_config_ships_every_required_runtime_file():
-    """vercel.json must name each file the app reads at request time."""
+def bundle_patterns() -> list[str]:
+    """The globs vercel.json ships with the function."""
     import json
 
     config = json.loads((demo_app.ROOT / "vercel.json").read_text(encoding="utf-8"))
-    included = config["functions"]["demo/app.py"]["includeFiles"]
+    entry = next(iter(config["functions"]))
+    raw = config["functions"][entry]["includeFiles"].strip()
+    if raw.startswith("{") and raw.endswith("}"):
+        raw = raw[1:-1]
+    return [part.strip() for part in raw.split(",") if part.strip()]
+
+
+def test_the_bundle_config_ships_every_required_runtime_file():
+    """Vercel traces imports, not data files. Each one must be named."""
+    import fnmatch
+
+    patterns = bundle_patterns()
     for path in demo_app.REQUIRED_RUNTIME_FILES:
         relative = str(path.relative_to(demo_app.ROOT)).replace("\\", "/")
-        covered = relative in included or any(
-            relative.startswith(prefix)
-            for prefix in ("demo/templates/",)
-            if f"{prefix}**" in included
+        covered = any(
+            fnmatch.fnmatch(relative, pattern.replace("**", "*")) for pattern in patterns
         )
         assert covered, f"vercel.json does not ship {relative}"
+
+
+def test_the_bundle_config_ships_the_gate_package():
+    """The crash was the package itself missing, not its data file."""
+    import fnmatch
+
+    patterns = bundle_patterns()
+    for module in ("cleared/__init__.py", "cleared/gate.py", "cleared/runner.py"):
+        assert any(
+            fnmatch.fnmatch(module, pattern.replace("**", "*")) for pattern in patterns
+        ), f"vercel.json does not ship {module}"
+
+
+def test_the_deployment_entrypoint_exposes_the_app():
+    """pyproject points the host at demo.entry, so it must import cleanly."""
+    import tomllib
+
+    from demo import entry
+
+    assert entry.app is demo_app.app
+
+    config = tomllib.loads((demo_app.ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert config["tool"]["vercel"]["entrypoint"] == "demo.entry:app"

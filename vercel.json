@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "demo/app.py": {
-      "includeFiles": "{cleared/policy.json,fixtures/accounts.json,fixtures/scenarios.json,fixtures/suppression.jsonl,demo/templates/**}"
+    "demo/entry.py": {
+      "includeFiles": "{cleared/**,fixtures/accounts.json,fixtures/scenarios.json,fixtures/suppression.jsonl,demo/**}"
     }
   }
 }
