@@ -79,8 +79,34 @@
   .turn:last-child { margin-bottom: 0; }
   .turn .who { color: var(--muted); display: inline-block; min-width: 78px; }
   .turn.revoked .what { color: var(--warn); font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  .table-wrap > table { min-width: 720px; }
+  .chain-wrap > table { min-width: 460px; }
+  details.tx > summary {
+    cursor: pointer; list-style: none; color: var(--muted); font-size: 13px;
+    padding: 2px 0; user-select: none;
+  }
+  details.tx > summary::-webkit-details-marker { display: none; }
+  details.tx > summary::before { content: "▸"; display: inline-block; width: 14px; }
+  details.tx[open] > summary::before { content: "▾"; }
+  details.tx > summary:hover { color: var(--accent); }
+  details.tx > summary .hit { color: var(--warn); font-weight: 600; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  /* Grid items default to min-width:auto and refuse to shrink below their
+     content, which pushes the page sideways instead of letting the wrapper
+     scroll. This is what makes the narrow layout behave. */
+  .cols > * { min-width: 0; }
   @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) {
+    body { padding: 20px 16px 48px; }
+    h1 { font-size: 25px; }
+    .tagline { font-size: 15px; }
+    .bar { gap: 16px; }
+    input[type=text] { min-width: 0; width: 100%; }
+    .bar form { width: 100%; }
+    .stat { min-width: 72px; }
+    .stat .n { font-size: 25px; }
+  }
 </style>
 </head>
 <body>
@@ -128,6 +154,7 @@
 
 <h2>Pre-dial decisions</h2>
 <div class="panel">
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
@@ -187,6 +214,11 @@
     {% if record.transcript %}
     <tr class="{% if result.opt_out %}optout{% endif %}">
       <td colspan="{{ 8 if allow_live else 7 }}">
+        <details class="tx" {% if record.revocation %}open{% endif %}>
+        <summary>
+          Transcript &middot; {{ record.transcript|length }} turns
+          {%- if record.revocation %} &middot; <span class="hit">opt-out heard</span>{% endif %}
+        </summary>
         <div class="transcript">
           {% for turn in record.transcript %}
           <p class="turn {% if record.revocation and loop.index0 == record.revocation.turn_index %}revoked{% endif %}">
@@ -199,6 +231,7 @@
           </span></p>
           {% endif %}
         </div>
+        </details>
       </td>
     </tr>
     {% endif %}
@@ -206,11 +239,13 @@
   </tbody>
 </table>
 </div>
+</div>
 
 <div class="cols">
   <div>
     <h2>Audit chain</h2>
     <div class="panel">
+      <div class="table-wrap chain-wrap">
       <table class="chain">
         <thead><tr><th>Ref</th><th>Account</th><th>Decision</th><th>Outcome</th><th>prev &rarr; hash</th></tr></thead>
         <tbody>
@@ -227,6 +262,7 @@
         {% endfor %}
         </tbody>
       </table>
+      </div>
       <p class="why">
         {{ audit_total }} entries.
         {% if verification.ok %}
@@ -241,6 +277,7 @@
   <div>
     <h2>Suppression list</h2>
     <div class="panel">
+      <div class="table-wrap chain-wrap">
       <table class="chain">
         <thead><tr><th>Number</th><th>Reason</th><th>Source</th><th>Added</th></tr></thead>
         <tbody>
@@ -254,11 +291,13 @@
         {% endfor %}
         </tbody>
       </table>
+      </div>
       <p class="why">Rule 3 reads this list before every dial. Rule 5 writes to it the moment someone opts out.</p>
     </div>
 
     <h2>The five rules</h2>
     <div class="panel">
+      <div class="table-wrap chain-wrap">
       <table class="chain">
         <tbody>
         {% for rule in policy.rules %}
@@ -271,6 +310,7 @@
         {% endfor %}
         </tbody>
       </table>
+      </div>
       <p class="why">
         {% if run and run.dry_run %}Dry run: the gate, the disclosure check, the opt-out detection and the audit
         chain all ran for real. Only the dialling was simulated.{% endif %}
