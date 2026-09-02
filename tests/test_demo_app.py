@@ -53,7 +53,9 @@ def test_rerunning_with_a_different_clock_changes_the_verdicts(client):
 def test_an_invalid_clock_is_reported_not_crashed(client):
     response = client.post("/run", data={"now": "half past tuesday"}, follow_redirects=True)
     assert response.status_code == 200
-    assert "flash bad" in response.text
+    assert "Could not read that clock" in response.text
+    # The batch from before the bad input is still on screen.
+    assert "OUTSIDE_CALL_WINDOW" in response.text
 
 
 def test_the_api_returns_the_full_run(client):
