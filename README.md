@@ -7,6 +7,10 @@ Everyone is building AI that can place the call. This is the layer that decides
 whether the call is *allowed to happen* — and refuses, with a named reason, when
 it is not.
 
+**[Live demo →](https://clearedtocall.vercel.app)** — a batch of seven fictional
+accounts, three refused before dialing. Read-only: live calling is disabled on
+the public deployment, so nothing there can dial anyone.
+
 ---
 
 ## The problem
@@ -41,7 +45,7 @@ Three pieces, in dependency order:
 | | |
 | --- | --- |
 | **`skills/cleared-to-call/`** | The portable Agent Skill. This is the contribution: `SKILL.md`, the policy and safety references, and a self-contained Node implementation of the gate. Installs into any Agent Skills host and wraps any outbound CALL-E use case. |
-| **`cleared/`** | A small Python package holding the same gate, the hash-chained audit log, the suppression list and the batch runner. Pure predicates, no I/O, 179 tests. |
+| **`cleared/`** | A small Python package holding the same gate, the hash-chained audit log, the suppression list and the batch runner. Pure predicates, no I/O, 190 tests. |
 | **`demo/`** | A thin FastAPI view that runs the batch over fixtures and shows every decision, refusal reason, transcript and audit entry. A demo, not a product. |
 
 The Node and Python gates read **the same `policy.json`**, and a test runs both
@@ -235,7 +239,7 @@ skills/cleared-to-call/
   references/      policy.md, safety.md, examples.md
   scripts/         self-contained Node gate + helpers
   assets/          policy.json (identical to the package copy, checked by a test)
-tests/             179 tests: rules, audit chain, revocation, runner, parity, demo
+tests/             190 tests: rules, audit chain, revocation, runner, parity, demo
 ```
 
 ## Scope and limits

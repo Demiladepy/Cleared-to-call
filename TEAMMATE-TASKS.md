@@ -5,7 +5,7 @@ dialer: its whole value is that it refuses calls correctly and can prove it. A
 change that makes the gate more permissive is a bug even when it makes a demo
 smoother.
 
-Current state: 179 tests green, the CALL-E repository validator passes with the
+Current state: 190 tests green, the CALL-E repository validator passes with the
 skill installed, and the whole loop runs in dry run with no credentials.
 
 ```bash

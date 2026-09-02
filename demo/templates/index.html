@@ -6,282 +6,355 @@
 <title>Cleared to Call</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
 <style>
-  /* Material 3 baseline tokens ---------------------------------------- */
   :root {
-    --primary: #6750a4;
-    --on-primary: #ffffff;
-    --primary-container: #eaddff;
-    --on-primary-container: #21005d;
-    --secondary-container: #e8def8;
-    --on-secondary-container: #1d192b;
-
-    --surface: #fef7ff;
-    --surface-container-lowest: #ffffff;
-    --surface-container-low: #f7f2fa;
-    --surface-container: #f3edf7;
-    --surface-container-high: #ece6f0;
-    --on-surface: #1d1b20;
-    --on-surface-variant: #49454f;
-    --outline: #79747e;
-    --outline-variant: #cac4d0;
-
-    --error: #b3261e;
-    --error-container: #f9dedc;
-    --on-error-container: #410e0b;
-    --success: #146c2e;
-    --success-container: #c4eed0;
-    --on-success-container: #072711;
-    --warning: #7a5900;
-    --warning-container: #ffdf99;
-    --on-warning-container: #261a00;
-
-    --elev-1: 0 1px 2px rgba(0,0,0,.30), 0 1px 3px 1px rgba(0,0,0,.15);
-    --elev-2: 0 1px 2px rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.15);
-    --font: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-muted: #eef1f6;
+    --ink: #0f172a;
+    --ink-muted: #64748b;
+    --ink-soft: #94a3b8;
+    --border: #e2e8f0;
+    --brand: #1d4ed8;
+    --brand-soft: #dbeafe;
+    --brand-ink: #1e3a8a;
+    --ok: #059669;
+    --ok-soft: #d1fae5;
+    --ok-ink: #065f46;
+    --bad: #dc2626;
+    --bad-soft: #fee2e2;
+    --bad-ink: #991b1b;
+    --warn: #d97706;
+    --warn-soft: #fef3c7;
+    --warn-ink: #92400e;
+    --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 8px 24px rgba(15, 23, 42, .06);
+    --radius: 16px;
+    --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--surface); color: var(--on-surface);
-    font-family: var(--font); font-size: 16px; line-height: 24px;
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--font); font-size: 15px; line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
-
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
   .icon {
     font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal;
     line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap;
     direction: ltr; font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
-    display: inline-block; vertical-align: middle; font-size: 20px;
+    display: inline-block; vertical-align: middle;
   }
-  .icon.sm { font-size: 18px; }
 
-  /* Type scale --------------------------------------------------------- */
-  .display  { font-size: 45px; line-height: 52px; font-weight: 400; letter-spacing: -.25px; }
-  .headline { font-size: 28px; line-height: 36px; font-weight: 400; }
-  .title-lg { font-size: 22px; line-height: 28px; font-weight: 400; }
-  .title-md { font-size: 16px; line-height: 24px; font-weight: 500; letter-spacing: .15px; }
-  .body-lg  { font-size: 16px; line-height: 24px; letter-spacing: .5px; }
-  .body-md  { font-size: 14px; line-height: 20px; letter-spacing: .25px; }
-  .label-lg { font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: .1px; }
-  .label-md { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: .5px; }
-  .variant  { color: var(--on-surface-variant); }
-  .num { font-variant-numeric: tabular-nums; }
-
-  /* App bar ------------------------------------------------------------ */
-  .appbar {
-    background: var(--surface-container); border-bottom: 1px solid var(--outline-variant);
-    position: sticky; top: 0; z-index: 5;
+  /* Top bar ----------------------------------------------------------- */
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);
   }
-  .appbar .inner { display: flex; align-items: center; gap: 16px; height: 64px; }
-  .appbar .brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 500; }
-  .appbar .brand .icon { color: var(--primary); font-size: 26px; }
-  .appbar .spacer { flex: 1; }
-
-  /* Hero --------------------------------------------------------------- */
-  .hero { padding: 48px 0 8px; }
-  .hero .display { max-width: 20ch; margin: 0 0 16px; }
-  .hero p { max-width: 76ch; margin: 0 0 28px; color: var(--on-surface-variant); }
-
-  /* Chips -------------------------------------------------------------- */
-  .chip {
-    display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px;
-    border-radius: 8px; border: 1px solid var(--outline-variant);
-    background: var(--surface-container-lowest); font-size: 14px; font-weight: 500;
-    line-height: 20px; color: var(--on-surface-variant);
+  .topbar .inner {
+    display: flex; align-items: center; gap: 14px; min-height: 64px; flex-wrap: wrap;
+    padding: 10px 0;
   }
-  .chip .icon { font-size: 18px; }
-  .chip.tonal { background: var(--secondary-container); color: var(--on-secondary-container); border-color: transparent; }
-  .chip.ok { background: var(--success-container); color: var(--on-success-container); border-color: transparent; }
-  .chip.bad { background: var(--error-container); color: var(--on-error-container); border-color: transparent; }
-
-  /* Segmented button --------------------------------------------------- */
-  .segmented { display: inline-flex; border: 1px solid var(--outline); border-radius: 20px; overflow: hidden; }
-  .segmented input { position: absolute; opacity: 0; pointer-events: none; }
-  .segmented label {
-    display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px;
-    font-size: 14px; font-weight: 500; letter-spacing: .1px; color: var(--on-surface);
-    cursor: pointer; border-right: 1px solid var(--outline); user-select: none;
-    background: transparent; transition: background .12s ease; margin: 0;
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: -.02em; }
+  .brand .icon { color: var(--brand); font-size: 26px; }
+  .spacer { flex: 1; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
+    border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .02em;
+    border: 1px solid var(--border); background: var(--surface-muted); color: var(--ink-muted);
   }
-  .segmented label:last-of-type { border-right: 0; }
-  .segmented label:hover { background: rgba(103,80,164,.08); }
-  .segmented input:checked + label { background: var(--secondary-container); color: var(--on-secondary-container); }
-  .segmented input:focus-visible + label { outline: 3px solid var(--primary); outline-offset: -3px; }
-  .segmented label .icon { font-size: 18px; opacity: 0; width: 0; transition: opacity .12s ease, width .12s ease; }
-  .segmented input:checked + label .icon { opacity: 1; width: 18px; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok-ink); border-color: transparent; }
+  .pill.bad { background: var(--bad-soft); color: var(--bad-ink); border-color: transparent; }
 
-  /* Buttons ------------------------------------------------------------ */
+  /* Simulation banner ------------------------------------------------- */
+  .sim-banner {
+    background: linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%);
+    border-bottom: 1px solid #bfdbfe;
+    padding: 14px 0;
+  }
+  .sim-banner .inner {
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .sim-banner .icon { color: var(--brand); font-size: 22px; margin-top: 2px; flex-shrink: 0; }
+  .sim-banner strong { display: block; font-size: 14px; margin-bottom: 2px; }
+  .sim-banner p { margin: 0; color: var(--ink-muted); font-size: 14px; max-width: 72ch; }
+
+  /* Hero -------------------------------------------------------------- */
+  .hero { padding: 36px 0 28px; }
+  .hero h1 {
+    margin: 0 0 12px; font-size: clamp(28px, 4vw, 40px); line-height: 1.15;
+    font-weight: 700; letter-spacing: -.03em; max-width: 18ch;
+  }
+  .hero .lede { margin: 0 0 28px; color: var(--ink-muted); font-size: 17px; max-width: 62ch; }
+
+  .banner {
+    display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px;
+    border-radius: 12px; margin-bottom: 20px; font-size: 14px;
+  }
+  .banner.ok { background: var(--ok-soft); color: var(--ok-ink); }
+  .banner.bad { background: var(--bad-soft); color: var(--bad-ink); }
+
+  /* Controls -------------------------------------------------------- */
+  .controls-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--shadow);
+  }
+  .controls-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); margin-bottom: 10px; }
+  .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .presets input { position: absolute; opacity: 0; pointer-events: none; }
+  .presets label {
+    display: block; padding: 12px 14px; border-radius: 12px; cursor: pointer;
+    border: 1.5px solid var(--border); background: var(--surface-muted);
+    transition: border-color .12s, background .12s, box-shadow .12s;
+  }
+  .presets label:hover { border-color: #93c5fd; }
+  .presets input:checked + label {
+    border-color: var(--brand); background: var(--brand-soft); box-shadow: 0 0 0 3px rgba(29,78,216,.12);
+  }
+  .presets .t { font-size: 14px; font-weight: 600; display: block; }
+  .presets .s { font-size: 12px; color: var(--ink-muted); margin-top: 2px; display: block; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    height: 40px; padding: 0 24px; border-radius: 20px; border: 1px solid transparent;
-    font-family: var(--font); font-size: 14px; font-weight: 500; letter-spacing: .1px;
-    cursor: pointer; transition: box-shadow .12s ease, background .12s ease;
+    height: 42px; padding: 0 20px; border-radius: 10px; border: 1px solid transparent;
+    font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: transform .08s, box-shadow .12s, background .12s;
   }
-  .btn .icon { font-size: 18px; }
-  .btn-filled { background: var(--primary); color: var(--on-primary); }
-  .btn-filled:hover { box-shadow: var(--elev-1); background: #5d488f; }
-  .btn-text { background: transparent; color: var(--primary); padding: 0 12px; }
-  .btn-text:hover { background: rgba(103,80,164,.08); }
-  .btn-outlined { background: transparent; color: var(--primary); border-color: var(--outline); }
-  .btn-outlined:hover { background: rgba(103,80,164,.08); }
-  .btn-danger {
-    background: var(--error-container); color: var(--on-error-container);
-    height: 32px; padding: 0 14px; font-size: 13px;
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--brand); color: #fff; }
+  .btn-primary:hover { box-shadow: 0 4px 14px rgba(29,78,216,.28); }
+  .btn-ghost { background: transparent; color: var(--ink-muted); border-color: var(--border); }
+  .btn-ghost:hover { background: var(--surface-muted); color: var(--ink); }
+  .btn-live {
+    background: var(--bad-soft); color: var(--bad-ink); height: 36px; padding: 0 14px; font-size: 13px;
   }
-  .btn-danger:hover { background: var(--error); color: #fff; }
+  .btn-live:hover { background: var(--bad); color: #fff; }
 
-  /* Cards -------------------------------------------------------------- */
-  .card {
-    background: var(--surface-container-lowest); border-radius: 12px;
-    border: 1px solid var(--outline-variant); overflow: hidden;
+  /* Flow -------------------------------------------------------------- */
+  .flow {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin: 28px 0 8px;
   }
-  .card.elevated { border-color: transparent; box-shadow: var(--elev-1); }
-  .card-head { padding: 20px 24px 4px; }
-  .card-body { padding: 16px 24px 20px; }
-
-  /* Metrics ------------------------------------------------------------ */
-  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin: 8px 0 0; }
-  .metric { padding: 20px 22px; }
-  .metric .head { display: flex; align-items: center; gap: 8px; color: var(--on-surface-variant); }
-  .metric .v { font-size: 40px; line-height: 48px; font-weight: 400; margin-top: 10px; font-variant-numeric: tabular-nums; }
-  .metric .k { color: var(--on-surface-variant); margin-top: 2px; }
-  .metric.is-error .v, .metric.is-error .head { color: var(--error); }
-  .metric.is-ok .v, .metric.is-ok .head { color: var(--success); }
-  .metric.is-warn .v, .metric.is-warn .head { color: var(--warning); }
-
-  /* Sections ----------------------------------------------------------- */
-  section { padding: 40px 0; }
-  .sec-head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 20px; }
-  .sec-head h2 { margin: 0; }
-  .sec-head p { margin: 6px 0 0; color: var(--on-surface-variant); max-width: 78ch; }
-
-  /* Data table --------------------------------------------------------- */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; }
-  .table-wrap > table { min-width: 900px; }
-  th {
-    height: 56px; text-align: left; padding: 0 16px; font-size: 12px; font-weight: 500;
-    letter-spacing: .5px; color: var(--on-surface-variant);
-    border-bottom: 1px solid var(--outline-variant); white-space: nowrap;
+  .flow-step {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; text-align: center; position: relative;
   }
-  td { padding: 14px 16px; border-bottom: 1px solid var(--outline-variant); vertical-align: top; font-size: 14px; line-height: 20px; }
-  tbody tr:last-child td { border-bottom: 0; }
-  tr.blocked { background: #fffbfb; }
-  tr.optout  { background: #fffcf3; }
-  .cell-title { font-size: 14px; font-weight: 500; }
-  .cell-sub { color: var(--on-surface-variant); font-size: 12px; line-height: 16px; margin-top: 3px; }
-  .reason { color: var(--error); font-weight: 500; }
-  .outcome { font-weight: 500; color: var(--success); }
-  .outcome.optout { color: var(--warning); }
-  .hash { font-size: 12px; color: var(--on-surface-variant); font-variant-numeric: tabular-nums; letter-spacing: .3px; }
-
-  /* Status pill -------------------------------------------------------- */
-  .status { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px 0 8px; border-radius: 8px; font-size: 12px; font-weight: 500; letter-spacing: .4px; }
-  .status .icon { font-size: 16px; }
-  .status.allow { background: var(--success-container); color: var(--on-success-container); }
-  .status.block { background: var(--error-container); color: var(--on-error-container); }
-
-  /* Transcript --------------------------------------------------------- */
-  details.tx > summary {
-    cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px;
-    color: var(--primary); font-size: 13px; font-weight: 500; padding: 2px 8px 2px 4px;
-    border-radius: 8px; user-select: none;
+  .flow-step .icon { font-size: 28px; color: var(--brand); margin-bottom: 8px; }
+  .flow-step .t { font-size: 13px; font-weight: 600; }
+  .flow-step .s { font-size: 12px; color: var(--ink-muted); margin-top: 4px; }
+  .flow-step:not(:last-child)::after {
+    content: "→"; position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-soft); font-size: 18px; font-weight: 600;
   }
-  details.tx > summary::-webkit-details-marker { display: none; }
-  details.tx > summary:hover { background: rgba(103,80,164,.08); }
-  details.tx > summary .chev { transition: transform .15s ease; font-size: 18px; }
-  details.tx[open] > summary .chev { transform: rotate(180deg); }
-  details.tx > summary .hit { color: var(--warning); }
-  .transcript { margin: 12px 0 4px; padding: 16px 18px; background: var(--surface-container-low); border-radius: 12px; }
-  .turn { display: flex; gap: 16px; margin: 0 0 10px; font-size: 14px; line-height: 20px; }
+
+  /* Metrics ----------------------------------------------------------- */
+  .metrics {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin: 24px 0 32px;
+  }
+  .metric {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 20px; box-shadow: var(--shadow);
+  }
+  .metric .k { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+  .metric .v { font-size: 34px; font-weight: 700; line-height: 1.1; margin: 8px 0 4px; font-variant-numeric: tabular-nums; }
+  .metric .d { font-size: 13px; color: var(--ink-muted); }
+  .metric.refused .v { color: var(--bad); }
+  .metric.cleared .v { color: var(--ok); }
+  .metric.optouts .v { color: var(--warn); }
+
+  /* Section headers --------------------------------------------------- */
+  section { padding: 8px 0 36px; }
+  .sec-head { margin-bottom: 18px; }
+  .sec-head h2 { margin: 0 0 6px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+  .sec-head p { margin: 0; color: var(--ink-muted); font-size: 14px; max-width: 65ch; }
+
+  /* Account cards ----------------------------------------------------- */
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .acct {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column;
+  }
+  .acct.refused { border-color: #fecaca; }
+  .acct.optout { border-color: #fde68a; }
+  .acct-head {
+    padding: 18px 20px 14px; display: flex; gap: 14px; align-items: flex-start;
+    border-bottom: 1px solid var(--border);
+  }
+  .acct-avatar {
+    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    display: grid; place-items: center; font-weight: 700; font-size: 15px;
+    background: var(--surface-muted); color: var(--ink-muted);
+  }
+  .acct.refused .acct-avatar { background: var(--bad-soft); color: var(--bad-ink); }
+  .acct.cleared .acct-avatar { background: var(--ok-soft); color: var(--ok-ink); }
+  .acct.optout .acct-avatar { background: var(--warn-soft); color: var(--warn-ink); }
+  .acct-title { flex: 1; min-width: 0; }
+  .acct-title .name { font-size: 17px; font-weight: 700; margin: 0 0 2px; }
+  .acct-title .meta { font-size: 13px; color: var(--ink-muted); }
+  .acct-title .meta .num { font-variant-numeric: tabular-nums; }
+  .verdict-badge {
+    flex-shrink: 0; padding: 6px 10px; border-radius: 8px; font-size: 11px;
+    font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  }
+  .verdict-badge.allow { background: var(--ok-soft); color: var(--ok-ink); }
+  .verdict-badge.block { background: var(--bad-soft); color: var(--bad-ink); }
+
+  .acct-body { padding: 16px 20px 18px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .verdict-text { font-size: 15px; font-weight: 600; margin: 0; }
+  .verdict-text.block { color: var(--bad-ink); }
+  .verdict-text.allow { color: var(--ok-ink); }
+  .verdict-text.optout { color: var(--warn-ink); }
+  .verdict-sub { font-size: 13px; color: var(--ink-muted); margin: 4px 0 0; }
+
+  .rules { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rule {
+    display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px;
+    border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+  .rule.pass { background: var(--ok-soft); color: var(--ok-ink); }
+  .rule.fail { background: var(--bad-soft); color: var(--bad-ink); }
+  .rule.pending { background: var(--surface-muted); color: var(--ink-soft); }
+  .rule .icon { font-size: 16px; }
+
+  .demo-tag {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+    color: var(--brand-ink); background: var(--brand-soft); padding: 4px 8px; border-radius: 6px;
+  }
+
+  details.panel > summary {
+    cursor: pointer; list-style: none; font-size: 13px; font-weight: 600;
+    color: var(--brand); display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 0; user-select: none;
+  }
+  details.panel > summary::-webkit-details-marker { display: none; }
+  details.panel > summary .chev { transition: transform .15s; font-size: 18px; }
+  details.panel[open] > summary .chev { transform: rotate(180deg); }
+  .panel-body {
+    margin-top: 10px; padding: 14px; background: var(--surface-muted);
+    border-radius: 10px; font-size: 13px; color: var(--ink-muted);
+  }
+  .panel-body .row { margin-bottom: 6px; }
+  .panel-body .row:last-child { margin-bottom: 0; }
+  .panel-body code {
+    font-size: 12px; background: var(--surface); padding: 2px 6px; border-radius: 4px;
+    border: 1px solid var(--border); color: var(--ink);
+  }
+
+  .transcript { margin-top: 4px; }
+  .turn {
+    display: flex; gap: 12px; margin-bottom: 10px; font-size: 14px;
+  }
   .turn:last-child { margin-bottom: 0; }
-  .turn .who { flex: 0 0 84px; font-size: 11px; font-weight: 500; letter-spacing: .6px; text-transform: uppercase; color: var(--on-surface-variant); padding-top: 2px; }
-  .turn.revoked .what { color: var(--warning); font-weight: 500; }
-  .turn.verdict { align-items: flex-start; }
-  .turn.verdict .what { color: var(--warning); }
-
-  /* Lists -------------------------------------------------------------- */
-  .list { margin: 0; padding: 0; list-style: none; }
-  .list li { display: flex; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--outline-variant); }
-  .list li:last-child { border-bottom: 0; }
-  .list .lead {
-    flex: 0 0 40px; height: 40px; border-radius: 20px; display: grid; place-items: center;
-    background: var(--surface-container-high); color: var(--on-surface-variant);
+  .turn .who {
+    flex: 0 0 72px; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink-soft); padding-top: 3px;
   }
-  .list .lead.ok { background: var(--success-container); color: var(--on-success-container); }
-  .list .lead.bad { background: var(--error-container); color: var(--on-error-container); }
-  .list .lead.warn { background: var(--warning-container); color: var(--on-warning-container); }
-  .list .txt { min-width: 0; flex: 1; }
-  .list .txt .t { font-size: 14px; font-weight: 500; }
-  .list .txt .s { font-size: 12px; line-height: 16px; color: var(--on-surface-variant); margin-top: 2px; word-break: break-word; }
-  .list .trail { flex: 0 0 auto; text-align: right; }
+  .turn.revoked .what { color: var(--warn-ink); font-weight: 600; }
+  .turn.verdict .what { color: var(--warn-ink); font-weight: 500; }
 
-  /* Banner ------------------------------------------------------------- */
-  .banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; border-radius: 12px; margin-bottom: 24px; font-size: 14px; }
-  .banner.ok { background: var(--secondary-container); color: var(--on-secondary-container); }
-  .banner.bad { background: var(--error-container); color: var(--on-error-container); }
+  .acct-foot {
+    padding: 0 20px 16px; margin-top: auto;
+  }
 
-  .controls { display: flex; flex-wrap: wrap; gap: 16px 20px; align-items: center; }
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-  /* Grid items default to min-width:auto and refuse to shrink below their
-     content, which pushes the page sideways instead of letting the wrapper
-     scroll. */
-  .cols > * { min-width: 0; }
-  footer { padding: 32px 0 56px; color: var(--on-surface-variant); font-size: 13px; border-top: 1px solid var(--outline-variant); }
+  /* Bottom panels ----------------------------------------------------- */
+  .panels { display: grid; grid-template-columns: 1.1fr .9fr; gap: 20px; align-items: start; }
+  .panels > * { min-width: 0; }
+  .panel-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+  }
+  .panel-card h3 {
+    margin: 0; padding: 18px 20px 0; font-size: 16px; font-weight: 700;
+  }
+  .panel-card .sub { padding: 4px 20px 16px; font-size: 13px; color: var(--ink-muted); margin: 0; }
+  .audit-item {
+    display: flex; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .audit-dot {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    display: grid; place-items: center;
+  }
+  .audit-dot.allow { background: var(--ok-soft); color: var(--ok-ink); }
+  .audit-dot.block { background: var(--bad-soft); color: var(--bad-ink); }
+  .audit-item .t { font-size: 14px; font-weight: 600; }
+  .audit-item .s { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+  .panel-foot {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    font-size: 13px; color: var(--ink-muted); background: var(--surface-muted);
+  }
 
-  @media (max-width: 1100px) {
+  .sup-item {
+    display: flex; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--border);
+    align-items: center;
+  }
+  .sup-item .icon-wrap {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--warn-soft);
+    color: var(--warn-ink); display: grid; place-items: center; flex-shrink: 0;
+  }
+  .policy-item {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+  }
+  .policy-item .t { font-size: 14px; font-weight: 600; }
+  .policy-item .s { font-size: 13px; color: var(--ink-muted); margin-top: 4px; }
+
+  footer {
+    padding: 28px 0 48px; border-top: 1px solid var(--border);
+    font-size: 13px; color: var(--ink-muted);
+  }
+
+  @media (max-width: 960px) {
+    .presets { grid-template-columns: repeat(2, 1fr); }
+    .flow { grid-template-columns: repeat(2, 1fr); }
+    .flow-step:nth-child(2)::after { display: none; }
+    .flow-step:not(:nth-child(2n))::after { display: none; }
     .metrics { grid-template-columns: repeat(3, 1fr); }
-    .cols { grid-template-columns: 1fr; }
+    .cards { grid-template-columns: 1fr; }
+    .panels { grid-template-columns: 1fr; }
   }
-  @media (max-width: 700px) {
+  @media (max-width: 600px) {
     .wrap { padding: 0 16px; }
-    /* The app bar cannot hold the brand and both chips on one line at this
-       width, so it wraps instead of pushing the page sideways. */
-    .appbar .inner { height: auto; flex-wrap: wrap; padding: 10px 0; gap: 8px 10px; }
-    .appbar .brand { flex: 1 0 100%; font-size: 20px; }
-    .appbar .spacer { display: none; }
-    .chip { height: 28px; padding: 0 10px; font-size: 12px; }
-    /* Four segments do not fit across 375px; a 2x2 grid keeps every label
-       readable rather than clipping it. */
-    .segmented { display: grid; grid-template-columns: 1fr 1fr; border-radius: 16px; }
-    .segmented label {
-      height: 46px; justify-content: center; text-align: center; padding: 0 8px;
-      border-right: 1px solid var(--outline); border-bottom: 1px solid var(--outline);
-    }
-    .segmented label:nth-of-type(2n) { border-right: 0; }
-    .segmented label:nth-last-of-type(-n+2) { border-bottom: 0; }
-    .display { font-size: 34px; line-height: 42px; }
-    .headline { font-size: 24px; line-height: 32px; }
-    .hero { padding: 32px 0 4px; }
-    section { padding: 28px 0; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
+    .flow { grid-template-columns: 1fr; }
+    .flow-step::after { display: none !important; }
   }
 </style>
 </head>
 <body>
 
-<div class="appbar">
+<header class="topbar">
   <div class="wrap inner">
     <div class="brand"><span class="icon">verified_user</span> Cleared to Call</div>
     <div class="spacer"></div>
-    <span class="chip tonal"><span class="icon">policy</span>{{ policy.jurisdiction }}</span>
+    <span class="pill"><span class="icon" style="font-size:16px">public</span>{{ policy.jurisdiction }}</span>
     {% if verification.ok %}
-      <span class="chip ok"><span class="icon">link</span>Audit chain verified</span>
+      <span class="pill ok"><span class="icon" style="font-size:16px">link</span>Audit chain intact</span>
     {% else %}
-      <span class="chip bad"><span class="icon">link_off</span>Audit chain broken</span>
+      <span class="pill bad"><span class="icon" style="font-size:16px">link_off</span>Chain broken</span>
     {% endif %}
+  </div>
+</header>
+
+<div class="sim-banner">
+  <div class="wrap inner">
+    <span class="icon">science</span>
+    <div>
+      <strong>Compliance simulation — fictional borrowers, real gate logic</strong>
+      <p>
+        Names and phone numbers are demo fixtures (555 range). The five-rule gate, disclosure check,
+        opt-out detection, and tamper-evident audit log all run for real.
+        {% if run and run.dry_run %}Only the phone dial is simulated — nothing is actually called.{% endif %}
+        {% if serverless %} This public deployment is read-only; live calling is disabled.{% endif %}
+      </p>
+    </div>
   </div>
 </div>
 
-<div class="wrap hero">
-  <h1 class="display">Every call provably lawful, or provably refused.</h1>
-  <p class="body-lg">
-    An outbound collections agent that cannot dial until every legal precondition is
-    satisfied. Five rules are evaluated for each account against the recipient's own
-    local time. Refused calls never reach a provider, opt-outs are honoured during the
-    call, and every decision is written to a tamper-evident log.
+<main class="wrap hero">
+  <h1>Lawful call, or provably refused.</h1>
+  <p class="lede">
+    Before any outbound collections call goes out, five US federal rules are checked against
+    each borrower&rsquo;s local time and consent record. Refused calls never reach a dialer.
   </p>
 
   {% if message %}
@@ -291,52 +364,67 @@
   <div class="banner bad"><span class="icon">error</span><div>{{ error }}</div></div>
   {% endif %}
 
-  <form method="post" action="/run" class="controls">
-    <div>
-      <div class="label-md variant" style="margin-bottom:8px">Evaluate the batch as if it were</div>
-      <div class="segmented">
+  <div class="controls-card">
+    <div class="controls-label">Evaluate batch as if the clock were</div>
+    <form method="post" action="/run">
+      <div class="presets">
         {% set presets = [
-          ("2026-08-28T13:30:00Z", "Mid-morning, US East"),
-          ("2026-08-28T02:00:00Z", "Late evening, US East"),
-          ("2026-08-28T16:00:00Z", "Midday, nationwide"),
-          ("", "Right now")
+          ("2026-08-28T13:30:00Z", "Mid-morning", "US East — most accounts clear"),
+          ("2026-08-28T02:00:00Z", "Late evening", "Shows time-window blocks"),
+          ("2026-08-28T16:00:00Z", "Midday", "Nationwide mix"),
+          ("", "Right now", "Uses current UTC time")
         ] %}
         {% set known = presets|map("first")|list %}
-        {% for value, caption in presets %}
+        {% for value, title, hint in presets %}
           <input type="radio" name="now" id="p{{ loop.index }}" value="{{ value }}"
-                 {% if now_input == value or (now_input not in known and loop.first) %}checked{% endif %} />
-          <label for="p{{ loop.index }}"><span class="icon">check</span>{{ caption }}</label>
+                 {% if now_input == value or (now_input not in known and loop.last) %}checked{% endif %} />
+          <label for="p{{ loop.index }}">
+            <span class="t">{{ title }}</span>
+            <span class="s">{{ hint }}</span>
+          </label>
         {% endfor %}
       </div>
-    </div>
-    <button class="btn btn-filled" type="submit"><span class="icon">play_arrow</span>Run batch</button>
-    <button class="btn btn-text" type="submit" name="fresh" value="1"><span class="icon">restart_alt</span>Reset demo</button>
-  </form>
-</div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit"><span class="icon">play_arrow</span>Run compliance check</button>
+        <button class="btn btn-ghost" type="submit" name="fresh" value="1"><span class="icon">restart_alt</span>Reset &amp; start fresh</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step"><div class="icon">inventory_2</div><div class="t">Load accounts</div><div class="s">Consent, timezone, balance</div></div>
+    <div class="flow-step"><div class="icon">gavel</div><div class="t">Pre-dial gate</div><div class="s">Rules 1–4 must pass</div></div>
+    <div class="flow-step"><div class="icon">{% if summary and summary.blocked %}block{% else %}call{% endif %}</div><div class="t">Call or refuse</div><div class="s">Blocked calls never dial</div></div>
+    <div class="flow-step"><div class="icon">receipt_long</div><div class="t">Audit log</div><div class="s">Hash-chained proof</div></div>
+  </div>
+</main>
 
 {% if summary %}
-<div class="wrap">
-  <div class="metrics">
-    <div class="card metric">
-      <div class="head"><span class="icon sm">groups</span><span class="label-md">IN BATCH</span></div>
-      <div class="v">{{ summary.accounts }}</div><div class="k body-md">Accounts evaluated</div>
-    </div>
-    <div class="card metric is-error">
-      <div class="head"><span class="icon sm">block</span><span class="label-md">REFUSED</span></div>
-      <div class="v">{{ summary.blocked }}</div><div class="k body-md">Never dialled</div>
-    </div>
-    <div class="card metric is-ok">
-      <div class="head"><span class="icon sm">check_circle</span><span class="label-md">CLEARED</span></div>
-      <div class="v">{{ summary.cleared }}</div><div class="k body-md">Passed all five rules</div>
-    </div>
-    <div class="card metric is-warn">
-      <div class="head"><span class="icon sm">do_not_disturb_on</span><span class="label-md">OPT-OUTS</span></div>
-      <div class="v">{{ summary.opt_outs }}</div><div class="k body-md">Honoured and suppressed</div>
-    </div>
-    <div class="card metric">
-      <div class="head"><span class="icon sm">receipt_long</span><span class="label-md">AUDIT</span></div>
-      <div class="v">{{ audit_total }}</div><div class="k body-md">Hash-chained entries</div>
-    </div>
+<div class="wrap metrics">
+  <div class="metric">
+    <div class="k">In batch</div>
+    <div class="v">{{ summary.accounts }}</div>
+    <div class="d">Borrowers evaluated</div>
+  </div>
+  <div class="metric refused">
+    <div class="k">Refused</div>
+    <div class="v">{{ summary.blocked }}</div>
+    <div class="d">Never reached dialer</div>
+  </div>
+  <div class="metric cleared">
+    <div class="k">Cleared</div>
+    <div class="v">{{ summary.cleared }}</div>
+    <div class="d">Passed all pre-dial rules</div>
+  </div>
+  <div class="metric optouts">
+    <div class="k">Opt-outs</div>
+    <div class="v">{{ summary.opt_outs }}</div>
+    <div class="d">Honoured &amp; suppressed</div>
+  </div>
+  <div class="metric">
+    <div class="k">Audit entries</div>
+    <div class="v">{{ audit_total }}</div>
+    <div class="d">Tamper-evident records</div>
   </div>
 </div>
 {% endif %}
@@ -344,194 +432,193 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <div>
-        <h2 class="headline">Pre-dial decisions</h2>
-        <p class="body-md">
-          Each account is evaluated before anything dials. A refusal names the rule that
-          failed and the evidence behind it.
-        </p>
-      </div>
+      <h2>Borrower decisions</h2>
+      <p>Each card shows whether this person can be called right now, which rules passed or failed, and what happened if a call went through.</p>
     </div>
 
-    <div class="card elevated">
-      <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Account</th><th>Number</th><th>Recipient local time</th><th>Decision</th>
-            <th>Reason or outcome</th><th>Disclosed</th><th>Audit ref</th>
-            {% if allow_live %}<th>Live call</th>{% endif %}
-          </tr>
-        </thead>
-        <tbody>
-        {% for record in records %}
-          {% set result = record.result %}
-          <tr class="{% if not record.decision.allowed %}blocked{% elif result.opt_out %}optout{% endif %}">
-            <td>
-              <div class="cell-title">{{ record.account.account_id }}</div>
-              <div class="cell-sub">{{ record.account.display_name }} &middot; {{ "%.2f"|format(record.account.amount_due) }} {{ record.account.currency }}</div>
-            </td>
-            <td class="num">{{ record.account.masked_phone }}</td>
-            <td>
-              <div class="num">{{ record.decision.local_time or "Unknown" }}</div>
-              <div class="cell-sub">{{ record.account.timezone }}</div>
-            </td>
-            <td>
-              {% if record.decision.allowed %}
-                <span class="status allow"><span class="icon">check_circle</span>ALLOW</span>
-              {% else %}
-                <span class="status block"><span class="icon">block</span>BLOCK</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if result.block_reason %}
-                <div class="reason">{{ result.block_reason|replace("_", " ")|title }}</div>
-                <div class="cell-sub"><strong>{{ result.block_reason }}</strong></div>
-                <div class="cell-sub">
-                  {%- for rule in record.decision.rules if not rule.passed -%}
-                    {{ rule.rule_id }} {{ rule.name|replace("_", " ") }} &mdash; {{ rule.detail }}{% if not loop.last %}<br />{% endif %}
-                  {%- endfor -%}
-                </div>
-              {% else %}
-                <div class="outcome {% if result.opt_out %}optout{% endif %}">{{ result.outcome|replace("_", " ")|title }}</div>
-                {% if result.promise_date %}<div class="cell-sub">Promised {{ result.promise_date }}</div>{% endif %}
-                {% if result.opt_out %}<div class="cell-sub">Number added to the suppression list</div>{% endif %}
-                {% if record.error %}<div class="cell-sub">{{ record.error }}</div>{% endif %}
-              {% endif %}
-            </td>
-            <td>
-              {% if result.disclosure_given %}
-                <span class="icon" style="color:var(--success)" title="Full disclosure given">check_circle</span>
-              {% else %}
-                <span class="variant">&mdash;</span>
-              {% endif %}
-            </td>
-            <td class="hash">{{ result.audit_ref }}</td>
-            {% if allow_live %}
-            <td>
-              {% if record.decision.allowed %}
-              <form method="post" action="/call/{{ record.account.account_id }}"
-                    onsubmit="return confirm('Place a REAL call to {{ record.account.masked_phone }}?');">
-                <button class="btn btn-danger" type="submit"><span class="icon">call</span>Call</button>
-              </form>
-              {% endif %}
-            </td>
+    <div class="cards">
+    {% for record in records %}
+      {% set result = record.result %}
+      {% set acct = record.account %}
+      {% set initials = acct.display_name.split()[0][0] ~ (acct.display_name.split()[-1][0] if acct.display_name.split()|length > 1 else "") %}
+      {% set demo_tags = {
+        "A-1002": "Time window demo",
+        "A-1003": "No consent demo",
+        "A-1004": "DNC list demo",
+        "A-1005": "Live opt-out demo"
+      } %}
+      <article class="acct {% if not record.decision.allowed %}refused{% elif result.opt_out %}optout{% else %}cleared{% endif %}">
+        <div class="acct-head">
+          <div class="acct-avatar">{{ initials }}</div>
+          <div class="acct-title">
+            <h3 class="name">{{ acct.display_name }}</h3>
+            <div class="meta">
+              <span class="num">{{ acct.masked_phone }}</span> &middot;
+              {{ "%.2f"|format(acct.amount_due) }} {{ acct.currency }} due &middot;
+              {{ record.decision.local_time or "Unknown" }} local
+            </div>
+            {% if acct.account_id in demo_tags %}
+            <div style="margin-top:8px"><span class="demo-tag"><span class="icon" style="font-size:14px">tips_and_updates</span>{{ demo_tags[acct.account_id] }}</span></div>
             {% endif %}
-          </tr>
-          {% if record.transcript %}
-          <tr class="{% if result.opt_out %}optout{% endif %}">
-            <td colspan="{{ 8 if allow_live else 7 }}" style="padding-top:0">
-              <details class="tx" {% if record.revocation %}open{% endif %}>
-              <summary>
-                <span class="icon chev">expand_more</span>
-                Transcript, {{ record.transcript|length }} turns
-                {%- if record.revocation %} &middot; <span class="hit">opt-out heard</span>{% endif %}
-              </summary>
-              <div class="transcript">
-                {% for turn in record.transcript %}
-                <p class="turn {% if record.revocation and loop.index0 == record.revocation.turn_index %}revoked{% endif %}">
-                  <span class="who">{{ turn.speaker }}</span><span class="what">{{ turn.text }}</span>
-                </p>
-                {% endfor %}
-                {% if record.revocation %}
-                <p class="turn verdict">
-                  <span class="who">Gate</span>
-                  <span class="what">
-                    Revocation matched &ldquo;{{ record.revocation.matched_phrase }}&rdquo;. Call ended,
-                    outcome recorded as opt out, number suppressed.
-                  </span>
-                </p>
-                {% endif %}
-              </div>
-              </details>
-            </td>
-          </tr>
+          </div>
+          {% if record.decision.allowed %}
+            <span class="verdict-badge allow">Cleared</span>
+          {% else %}
+            <span class="verdict-badge block">Refused</span>
           {% endif %}
-        {% endfor %}
-        </tbody>
-      </table>
-      </div>
+        </div>
+
+        <div class="acct-body">
+          {% if result.block_reason %}
+            <p class="verdict-text block">
+              Cannot call — {% if result.block_reason == "OUTSIDE_CALL_WINDOW" %}outside legal call window (8am–9pm local)
+              {% elif result.block_reason == "NO_CONSENT" %}no prior express consent on file
+              {% elif result.block_reason == "ON_SUPPRESSION_LIST" %}number is on the do-not-call list
+              {% elif result.block_reason == "MISSING_DISCLOSURE" %}required disclosure missing from script
+              {% else %}{{ result.block_reason|replace("_", " ")|title }}{% endif %}
+            </p>
+            <p class="verdict-sub">This account never reached a dialer. The refusal is recorded in the audit log.</p>
+          {% elif result.opt_out %}
+            <p class="verdict-text optout">Call placed — recipient opted out during the call</p>
+            <p class="verdict-sub">The number was added to the suppression list immediately. Future batches will refuse.</p>
+          {% else %}
+            <p class="verdict-text allow">Call placed — {{ result.outcome|replace("_", " ")|title }}</p>
+            {% if result.promise_date %}<p class="verdict-sub">Payment promised for {{ result.promise_date }}</p>{% endif %}
+            {% if record.error %}<p class="verdict-sub">{{ record.error }}</p>{% endif %}
+          {% endif %}
+
+          <div class="rules">
+            {% for rule in record.decision.rules %}
+            <span class="rule {% if rule.passed %}pass{% else %}fail{% endif %}" title="{{ rule.detail }}">
+              <span class="icon">{% if rule.passed %}check{% else %}close{% endif %}</span>
+              {% if rule.name == "call_window" %}Call window
+              {% elif rule.name == "consent_on_file" %}Consent
+              {% elif rule.name == "not_suppressed" %}Not on DNC
+              {% elif rule.name == "disclosure_ready" %}Disclosure
+              {% else %}{{ rule.name|replace("_", " ")|title }}{% endif %}
+            </span>
+            {% endfor %}
+            {% if record.transcript %}
+            <span class="rule {% if result.opt_out %}fail{% else %}pass{% endif %}">
+              <span class="icon">{% if result.opt_out %}close{% else %}check{% endif %}</span>
+              Live opt-out
+            </span>
+            {% elif record.decision.allowed %}
+            <span class="rule pending"><span class="icon">schedule</span>Live opt-out</span>
+            {% endif %}
+          </div>
+
+          {% if record.transcript %}
+          <details class="panel transcript" {% if record.revocation %}open{% endif %}>
+            <summary><span class="icon chev">expand_more</span> Call transcript ({{ record.transcript|length }} turns){% if record.revocation %} — opt-out detected{% endif %}</summary>
+            <div class="panel-body">
+              {% for turn in record.transcript %}
+              <div class="turn {% if record.revocation and loop.index0 == record.revocation.turn_index %}revoked{% endif %}">
+                <span class="who">{{ turn.speaker }}</span>
+                <span class="what">{{ turn.text }}</span>
+              </div>
+              {% endfor %}
+              {% if record.revocation %}
+              <div class="turn verdict">
+                <span class="who">Gate</span>
+                <span class="what">
+                  Revocation matched &ldquo;{{ record.revocation.matched_phrase }}&rdquo;. Call ended,
+                  outcome recorded as opt out, number suppressed.
+                </span>
+              </div>
+              {% endif %}
+            </div>
+          </details>
+          {% endif %}
+
+          <details class="panel">
+            <summary><span class="icon chev">expand_more</span> Technical details</summary>
+            <div class="panel-body">
+              <div class="row">Account ID: <code>{{ acct.account_id }}</code></div>
+              <div class="row">Timezone: <code>{{ acct.timezone }}</code></div>
+              {% if result.block_reason %}
+              <div class="row">Block code: <code>{{ result.block_reason }}</code></div>
+              {% for rule in record.decision.rules if not rule.passed %}
+              <div class="row">{{ rule.rule_id }} — {{ rule.detail }}</div>
+              {% endfor %}
+              {% else %}
+              <div class="row">Outcome: <code>{{ result.outcome }}</code></div>
+              {% endif %}
+              <div class="row">Audit ref: <code>{{ result.audit_ref }}</code></div>
+              <div class="row">Disclosure given: {% if result.disclosure_given %}yes{% else %}no{% endif %}</div>
+            </div>
+          </details>
+        </div>
+
+        {% if allow_live and record.decision.allowed %}
+        <div class="acct-foot">
+          <form method="post" action="/call/{{ acct.account_id }}"
+                onsubmit="return confirm('Place a REAL call to {{ acct.masked_phone }}? This spends CALL-E credits.');">
+            <button class="btn btn-live" type="submit"><span class="icon">call</span>Place live call</button>
+          </form>
+        </div>
+        {% endif %}
+      </article>
+    {% endfor %}
     </div>
   </div>
 </section>
 
 <section>
-  <div class="wrap cols">
-    <div>
-      <h2 class="title-lg" style="margin:0 0 16px">Audit trail</h2>
-      <div class="card">
-        <ul class="list">
-        {% for entry in audit_entries %}
-          <li>
-            <div class="lead {{ 'ok' if entry.decision == 'allow' else 'bad' }}">
-              <span class="icon">{{ 'check' if entry.decision == 'allow' else 'block' }}</span>
-            </div>
-            <div class="txt">
-              <div class="t">
-                {{ entry.account_id }} &middot;
-                {% if entry.block_reason %}{{ entry.block_reason|replace("_", " ")|title }}
-                {% else %}{{ entry.outcome|replace("_", " ")|title }}{% endif %}
-              </div>
-              <div class="s">{{ entry.audit_ref }} &middot; {{ entry.prev_hash[:8] }} &rarr; {{ entry.hash[:8] }}</div>
-            </div>
-          </li>
-        {% endfor %}
-        </ul>
-        <div class="card-body">
-          <p class="body-md variant" style="margin:0">
-            {% if verification.ok %}
-              All {{ audit_total }} entries verified from genesis. No entry has been edited,
-              deleted, or reordered.
-            {% else %}
-              Chain broken at entry {{ verification.first_bad_index }}: {{ verification.reason }}
-            {% endif %}
-          </p>
+  <div class="wrap panels">
+    <div class="panel-card">
+      <h3>Audit trail</h3>
+      <p class="sub">Every allow and refuse decision is appended to a hash-chained log. Edits are detectable.</p>
+      {% for entry in audit_entries %}
+      <div class="audit-item">
+        <div class="audit-dot {{ entry.decision }}">
+          <span class="icon" style="font-size:18px">{{ 'check' if entry.decision == 'allow' else 'block' }}</span>
         </div>
+        <div>
+          <div class="t">
+            {% if entry.block_reason %}
+              Refused — {{ entry.block_reason|replace("_", " ")|title }}
+            {% else %}
+              Cleared — {{ entry.outcome|replace("_", " ")|title }}
+            {% endif %}
+          </div>
+          <div class="s">{{ entry.account_id }} &middot; {{ entry.audit_ref }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      <div class="panel-foot">
+        {% if verification.ok %}
+          All {{ audit_total }} entries verified from genesis. No entry edited, deleted, or reordered.
+        {% else %}
+          Chain broken at entry {{ verification.first_bad_index }}: {{ verification.reason }}
+        {% endif %}
       </div>
     </div>
 
     <div>
-      <h2 class="title-lg" style="margin:0 0 16px">Suppression list</h2>
-      <div class="card">
-        <ul class="list">
+      <div class="panel-card" style="margin-bottom:20px">
+        <h3>Do-not-call list</h3>
+        <p class="sub">Rule 3 checks this before every dial. Rule 5 adds numbers the moment someone opts out.</p>
         {% for entry in suppressed %}
-          <li>
-            <div class="lead warn"><span class="icon">phone_disabled</span></div>
-            <div class="txt">
-              <div class="t num">{{ entry.to_masked_dict().phone_e164 }}</div>
-              <div class="s">{{ entry.reason|replace("_", " ")|title }} &middot; {{ entry.source }}</div>
-            </div>
-            <div class="trail s variant" style="font-size:12px">{{ entry.added_at[:10] }}</div>
-          </li>
-        {% endfor %}
-        </ul>
-        <div class="card-body">
-          <p class="body-md variant" style="margin:0">
-            Rule 3 reads this list before every dial. Rule 5 writes to it the moment
-            someone opts out.
-          </p>
+        <div class="sup-item">
+          <div class="icon-wrap"><span class="icon" style="font-size:18px">phone_disabled</span></div>
+          <div>
+            <div class="t num" style="font-variant-numeric:tabular-nums">{{ entry.to_masked_dict().phone_e164 }}</div>
+            <div class="s">{{ entry.reason|replace("_", " ")|title }} &middot; since {{ entry.added_at[:10] }}</div>
+          </div>
         </div>
+        {% endfor %}
       </div>
 
-      <h2 class="title-lg" style="margin:32px 0 16px">The policy</h2>
-      <div class="card">
-        <ul class="list">
+      <div class="panel-card">
+        <h3>Active policy</h3>
+        <p class="sub">{{ policy.policy_id }} v{{ policy.policy_version }} &middot; {{ policy.window_label }} local window</p>
         {% for rule in policy.rules %}
-          <li>
-            <div class="lead"><span class="icon">{{ 'gavel' if rule.stage == 'pre_dial' else 'record_voice_over' }}</span></div>
-            <div class="txt">
-              <div class="t">{{ rule.id }} &middot; {{ rule.name|replace("_", " ")|title }}</div>
-              <div class="s">{{ rule.requirement }}</div>
-            </div>
-          </li>
-        {% endfor %}
-        </ul>
-        <div class="card-body">
-          <p class="body-md variant" style="margin:0">
-            {% if run and run.dry_run %}Dry run: the gate, the disclosure check, the opt-out
-            detection and the audit chain all ran for real. Only the dialling was simulated.{% endif %}
-          </p>
+        <div class="policy-item">
+          <div class="t">{{ rule.id }} — {{ rule.name|replace("_", " ")|title }}</div>
+          <div class="s">{{ rule.requirement }}</div>
         </div>
+        {% endfor %}
       </div>
     </div>
   </div>
@@ -539,8 +626,7 @@
 
 <footer>
   <div class="wrap">
-    {{ policy.policy_id }} v{{ policy.policy_version }} &middot; call window
-    {{ policy.window_label }} local to the recipient &middot; {{ policy.authorities|join(" · ") }}
+    {{ policy.authorities|join(" · ") }}
   </div>
 </footer>
 

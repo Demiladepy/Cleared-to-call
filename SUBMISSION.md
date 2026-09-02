@@ -6,22 +6,35 @@ Everything needed to ship, plus the four things only you can supply.
 
 | Phase | State |
 | --- | --- |
-| 1. Core gate, audit chain, suppression, fixtures, tests | Done — 179 tests green |
-| 2. Dry-run batch loop + Agent Skill | Done — passes `validate_repository.py` |
+| 1. Core gate, audit chain, suppression, fixtures, tests | Done — 190 tests green |
+| 2. Dry-run batch loop + Agent Skill | Done — `validate_repository.py` passes, verified |
 | 3. CALL-E wiring (`plan_call` → `run_call` → `get_call_run`) | Code done, **never run live** |
-| 4. Demo app | Done — `python -m demo.app` |
+| 4. Demo app | Done — live at https://clearedtocall.vercel.app |
 | 5. Submission | Needs you: see below |
 
 ## Blocked on you
 
 1. **CALL-E account + CLI login.** `npm install -g @call-e/cli && calle auth login`.
    The live caller reads the CLI token cache; there is no place to paste a key.
-2. **A US E.164 number you own**, for the two or three real test calls and the
-   recording. CALL-E does not reliably dial many non-US regions, and the whole
-   demo assumes US federal rules.
-3. **Confirm the jurisdiction assumption: US federal (TCPA / FDCPA / Reg F).**
-   Everything in `cleared/policy.json` follows from it. If the target is
-   elsewhere, rule 1's window and rule 2's consent basis both change.
+2. **A phone you own, for two or three real calls.** Nigeria works: CALL-E
+   added `NG` as a recipient region (see `apps/python/sentinelcall-anc-followup`
+   in their repo, which targets Nigeria). Your number is already in the
+   gitignored `fixtures/demo-live.json` as `A-9001`, timezone `Africa/Lagos`.
+   Confirm it dials before spending a credit:
+
+   ```bash
+   python -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region NG
+   ```
+
+   That runs the gate and `plan_call` only. No phone rings, no credit is spent.
+   Rule 1 will refuse outside 08:00–21:00 Lagos, which is 07:00–20:00 UTC.
+3. **The jurisdiction is US federal (TCPA / FDCPA / Reg F)** and the test number
+   is Nigerian, because that is the phone available. Say so in the video rather
+   than glossing it: the gate reads whichever IANA timezone is on the account
+   record, so the screen shows `Africa/Lagos` and the window check runs against
+   Lagos local time. That demonstrates rule 1 better than a US number would.
+   If the real target market is not the US, rule 1's window and rule 2's consent
+   basis both change and `cleared/policy.json` needs replacing.
 4. **Your deadline**, which decides how much of the video is re-shot versus
    taken in one pass.
 
@@ -115,7 +128,7 @@ node skills/cleared-to-call/scripts/validate-input.mjs \
   --file skills/cleared-to-call/assets/example-accounts.json
 ```
 
-Full test suite (179 tests) lives in the companion repo, including a parity test
+Full test suite (190 tests) lives in the companion repo, including a parity test
 that runs the Node gate and a Python implementation over the same fixtures and
 compares every verdict.
 ```
@@ -124,7 +137,8 @@ compares every verdict.
 
 - **Tagline:** Your AI can place the call. This decides whether it is allowed to.
 - **Repo/PR:** the PR URL from above
-- **Demo app:** optional; `python -m demo.app` locally, or deploy `demo/`
+- **Demo app:** https://clearedtocall.vercel.app (public, read-only: live
+  calling is disabled on the deployment and the page says so)
 - **Video:** unlisted YouTube link, ~3 minutes
 - **CALL-E account email:** the address you logged into the CLI with
 - **What it does:** a consent-and-compliance gate for AI collection calls —
@@ -137,24 +151,35 @@ compares every verdict.
 Set up once, off camera:
 
 ```bash
-python -m cleared.cli run --now 2026-08-28T13:30:00Z --fresh   # warm the state
-python -m demo.app --now 2026-08-28T13:30:00Z --allow-live     # for the live beat
+# Confirm NG dials, for free, before spending anything.
+python -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region NG
+
+# Start the demo with your own number in the batch and the live button armed.
+python -m demo.app --accounts fixtures/demo-live.json --region NG --allow-live
 ```
+
+Record between 07:00 and 20:00 UTC. Outside that, Lagos is beyond the 08:00–21:00
+window and the gate will correctly refuse your own live call.
 
 | Time | Beat | On screen |
 | --- | --- | --- |
 | 0:00–0:15 | The stat. "$500–$1,500 per non-compliant collection call, class actions in the millions. That is why lenders will not let AI dial." | Title card |
-| 0:15–1:00 | **The refusal montage.** The batch evaluates every account *before* dialing. A-1002 refused: 06:30 local in Los Angeles. A-1003 refused: no consent on file. A-1004 refused: on the opt-out list. Each with its rule detail and audit ref. | Demo page, blocked rows |
+| 0:15–0:45 | **The refusal montage.** The batch evaluates every account *before* dialing. A-1002 refused: 06:30 local in Los Angeles. A-1003 refused: no consent on file. A-1004 refused: on the opt-out list. Each with its rule detail and audit ref. | Demo page, blocked rows |
+| 0:45–1:00 | **The timezone proof.** Switch the time control from *Mid-morning* to *Late evening*. New York flips ALLOW → BLOCK; Los Angeles flips BLOCK → ALLOW. Same instant, opposite verdicts, because the gate reads each recipient's own stored timezone. | Demo page, segmented control |
 | 1:00–2:15 | **The live call.** Click "Call for real" on a cleared account. It opens with the full disclosure. You say "stop calling me." The agent acknowledges and hangs up. The row flips to `opt_out`, the number lands on the suppression list. | Phone + demo page |
-| 2:15–2:35 | Click "Re-run batch". That account is now `ON_SUPPRESSION_LIST`. The opt-out is permanent, with nobody in the loop. | Demo page |
+| 2:15–2:35 | Click **Run batch** again. That account is now `ON_SUPPRESSION_LIST`. The opt-out is permanent, with nobody in the loop. | Demo page |
 | 2:35–2:50 | Another cleared account reaches promise-to-pay; the structured result fills in. | Demo page |
 | 2:50–3:00 | The audit chain: every decision, hashed to the one before it, verified. "Every call provably lawful — or provably refused." | Audit panel |
 
 Notes for the shoot:
 
-- Use `--now 2026-08-28T13:30:00Z` so the refusals are identical every take.
-- The live beat needs the demo started with `--allow-live` and a fixture edited
-  to your own number. Change it back afterwards.
+- The time control defaults to *Mid-morning, US East*, so the three refusals are
+  identical on every take. **Reset demo** restores the starting state between takes.
+- The live beat needs `--allow-live` and `--accounts fixtures/demo-live.json`.
+  That fixture is gitignored and holds your real number; the committed fixtures
+  stay fictional, so nothing needs changing back before you push.
+- The live call re-checks the gate against *real* time, not the selected preset.
+  Before 07:00 UTC it will refuse — correct behaviour, but it will cost you a take.
 - Budget three real calls: one rehearsal, one for the opt-out beat, one spare.
   You have about twenty.
 - Do not show the terminal during `calle auth login`.

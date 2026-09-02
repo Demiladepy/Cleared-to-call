@@ -172,6 +172,7 @@ def view_model() -> dict[str, Any]:
         "verification": audit.verify(),
         "now_input": state.now_input,
         "allow_live": state.allow_live,
+        "serverless": SERVERLESS,
         "message": state.message,
         "error": state.error,
         "suppressed": suppression().entries(),
