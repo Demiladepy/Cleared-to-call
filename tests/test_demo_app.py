@@ -270,3 +270,29 @@ def test_the_web_dependencies_are_installed_not_optional():
     installed = " ".join(config["project"]["dependencies"]).lower()
     for package in ("fastapi", "jinja2", "python-multipart", "tzdata"):
         assert package in installed, f"{package} is not in [project] dependencies"
+
+
+def test_icon_ligature_names_cannot_leak_when_the_font_fails(client):
+    """Material Symbols renders icon names as text until its font arrives.
+
+    Without a guard, a blocked CDN turns all 66 icons into the words
+    "play_arrow", "verified_user" and so on, across the whole page.
+    """
+    body = client.get("/").text
+    assert "icons-pending" in body, "no guard class is applied before the font loads"
+    assert ".icons-pending .icon { visibility: hidden; }" in body
+    assert ".icons-failed .icon { display: none; }" in body
+    assert 'document.fonts.check' in body, "the guard must verify the font actually loaded"
+
+
+def test_the_page_still_tells_the_story_without_any_icons(client):
+    """What a reader sees when the icon font never arrives."""
+    body = client.get("/").text
+    for essential in (
+        "Refused",
+        "Cleared",
+        "OUTSIDE_CALL_WINDOW",
+        "NO_CONSENT",
+        "ON_SUPPRESSION_LIST",
+    ):
+        assert essential in body, f"{essential} is carried only by an icon"

@@ -4,6 +4,33 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cleared to Call</title>
+<script>
+  // Material Symbols renders via ligatures: the element's text is the icon name.
+  // If the font does not arrive - a blocked CDN, an offline laptop, a locked-down
+  // conference network - all 66 icons render as the words "play_arrow",
+  // "verified_user" and so on. Hide them until the font is confirmed, and leave
+  // them hidden if it never comes. Every icon sits beside text that carries the
+  // same meaning, so nothing is lost when they are absent.
+  document.documentElement.className += " icons-pending";
+  (function () {
+    var root = document.documentElement;
+    var face = '20px "Material Symbols Outlined"';
+    function settle(ok) {
+      root.className = root.className.replace(" icons-pending", "");
+      if (!ok) { root.className += " icons-failed"; }
+    }
+    if (!document.fonts || !document.fonts.load) { settle(false); return; }
+    document.fonts.load(face).then(function () {
+      settle(document.fonts.check(face));
+    }).catch(function () { settle(false); });
+    // Never leave the icons hidden forever if the promise never settles.
+    setTimeout(function () {
+      if (root.className.indexOf("icons-pending") !== -1) {
+        settle(document.fonts.check(face));
+      }
+    }, 3000);
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
@@ -39,6 +66,9 @@
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  /* See the ligature guard in <head>. */
+  .icons-pending .icon { visibility: hidden; }
+  .icons-failed .icon { display: none; }
   .icon {
     font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal;
     line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap;
