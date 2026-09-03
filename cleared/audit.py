@@ -36,8 +36,18 @@ BODY_FIELDS = (
     "policy_id",
     "policy_version",
     "dry_run",
+    "provider_ref",
     "prev_hash",
 )
+
+# An entry's `decision` is one of these. `intent` and `dispatched` exist so a
+# call that is in flight is on disk before it can be lost: see B3 in
+# TEAMMATE-TASKS.md. A run that dies after `intent` must never be re-dialled.
+# `unreconciled` is deliberately NOT terminal: it records that we refused to
+# re-dial, without clearing the in-flight state that caused the refusal. A
+# terminal entry here would make the next run believe the account was settled
+# and dial the person again, which is the whole bug.
+DECISIONS = ("allow", "block", "intent", "dispatched", "unreconciled")
 
 
 def canonical_json(payload: dict[str, Any]) -> str:
@@ -69,6 +79,7 @@ def build_entry(
     block_reason: str | None = None,
     outcome: str | None = None,
     dry_run: bool = False,
+    provider_ref: str | None = None,
     timestamp: datetime | None = None,
 ) -> dict[str, Any]:
     """Build one complete, self-verifying audit entry."""
@@ -84,6 +95,7 @@ def build_entry(
         "policy_id": policy_id,
         "policy_version": policy_version,
         "dry_run": dry_run,
+        "provider_ref": provider_ref,
         "prev_hash": prev_hash,
     }
     audit_ref = compute_audit_ref(body)
@@ -189,6 +201,7 @@ class AuditLog:
         block_reason: str | None = None,
         outcome: str | None = None,
         dry_run: bool = False,
+        provider_ref: str | None = None,
         timestamp: datetime | None = None,
     ) -> dict[str, Any]:
         entry = build_entry(
@@ -202,6 +215,7 @@ class AuditLog:
             block_reason=block_reason,
             outcome=outcome,
             dry_run=dry_run,
+            provider_ref=provider_ref,
             timestamp=timestamp,
         )
         with self.path.open("a", encoding="utf-8") as handle:

@@ -87,7 +87,7 @@ outcome that was never inferred from prose. Rule 5 stays independent: the
 transcript re-scan in `cleared/runner.py:process_account` must keep running even
 when the schema reports no opt-out.
 
-### B3 — Duplicate-call prevention — **blocking if you run more than one batch**
+### B3 — Duplicate-call prevention — **DONE**
 
 **Where:** `cleared/runner.py:process_account`, `cleared/calle_caller.py:_place_call`
 
@@ -102,6 +102,26 @@ calling `get_call_run` for that `run_id` — never by dialing again.
 
 **Acceptance.** Kill the process mid-call, re-run the batch, and confirm no
 second call is placed and the outcome is recovered from the provider.
+
+**Done.** `cleared/runner.py:pending_dispatch` plus the interlock in
+`process_account`. A live call now writes `intent` before the provider is
+touched and `dispatched` the moment a run id exists (`CalleCaller.dispatch_hook`);
+`CalleCaller.recover` finishes an in-flight run by polling `get_call_run`.
+Nine tests in `tests/test_duplicate_calls.py` cover it, including a simulated
+mid-call kill, recovery without re-dialling, and a recovered opt-out still
+reaching the suppression list.
+
+Two things worth knowing:
+
+- A refusal writes `decision: "unreconciled"`, which is deliberately **not**
+  terminal. Writing `block` there cleared the pending state, so the next run
+  believed the account was settled and would have dialled again. A test caught
+  that; do not "tidy" it back to `block`.
+- Dry runs write no `intent` entry. A simulated call cannot be lost, and the
+  demo's audit panel stays one line per account.
+
+Still simulated: the kill is a raised `KeyboardInterrupt`, not a real `SIGKILL`
+between processes. Worth doing for real once B1 gives you a live run id.
 
 ---
 

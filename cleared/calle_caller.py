@@ -27,7 +27,7 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .callers import (
     DEFAULT_BASE_URL,
@@ -266,6 +266,9 @@ class CalleCaller:
     calle_command: str | None = None
     poll_interval_seconds: float = 10.0
     poll_timeout_seconds: float = 900.0
+    # Called with the run id as soon as the provider returns one, so the runner
+    # can record that a call is in flight before it can be lost (B3).
+    dispatch_hook: Callable[[str], None] | None = None
     audit_ref: str | None = None
     events: list[dict[str, Any]] = field(default_factory=list)
     _token: str | None = field(default=None, init=False, repr=False)
@@ -288,6 +291,20 @@ class CalleCaller:
 
     def place_call(self, account: Account, script: CallScript) -> CallReport:
         return asyncio.run(self._place_call(account, script))
+
+    def recover(self, run_id: str) -> CallReport:
+        """Recover the outcome of a call that was dispatched but never recorded.
+
+        This is the other half of the duplicate-call interlock: a run that is
+        already in flight is finished by asking the provider what happened, never
+        by dialling the person a second time.
+        """
+        return asyncio.run(self._recover(run_id))
+
+    async def _recover(self, run_id: str) -> CallReport:
+        async with self._client() as client:
+            final = await self._poll(client, run_id, {}, None)
+        return self._report_from(final, run_id)
 
     def plan_only(self, account: Account, script: CallScript) -> dict[str, Any]:
         """Plan a call without running it: checks auth, region and payload for free.
@@ -364,9 +381,15 @@ class CalleCaller:
             if not isinstance(run_id, str) or not run_id:
                 raise CallerError("run_call did not return run_id")
             self.record("run_call", account_id=account.account_id, run_id=run_id)
+            if self.dispatch_hook is not None:
+                self.dispatch_hook(run_id)
 
             final = await self._poll(client, run_id, meta, account)
 
+        return self._report_from(final, run_id)
+
+    def _report_from(self, final: Any, run_id: str) -> CallReport:
+        """Turn a terminal `get_call_run` payload into a CallReport."""
         status = extract_status(final)
         summary = extract_summary(final)
         transcript = extract_transcript(final)
@@ -389,13 +412,20 @@ class CalleCaller:
             raise CallerError(f"{name} failed: {json.dumps(payload, default=str)[:400]}")
         return payload
 
-    async def _poll(self, client: Any, run_id: str, meta: dict[str, Any], account: Account) -> Any:
+    async def _poll(
+        self, client: Any, run_id: str, meta: dict[str, Any], account: Account | None
+    ) -> Any:
         deadline = time.monotonic() + self.poll_timeout_seconds
         last: Any = None
         while True:
             last = await self._call_tool(client, "get_call_run", {"run_id": run_id}, meta)
             status = extract_status(last)
-            self.record("get_call_run", account_id=account.account_id, run_id=run_id, status=status)
+            self.record(
+                "get_call_run",
+                account_id=account.account_id if account else "<recovery>",
+                run_id=run_id,
+                status=status,
+            )
             if status in TERMINAL_STATUSES:
                 return last
             if time.monotonic() >= deadline:
