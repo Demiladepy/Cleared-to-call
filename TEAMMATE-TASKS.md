@@ -5,12 +5,15 @@ dialer: its whole value is that it refuses calls correctly and can prove it. A
 change that makes the gate more permissive is a bug even when it makes a demo
 smoother.
 
-Current state: 190 tests green, the CALL-E repository validator passes with the
+Current state: 231 tests green, the CALL-E repository validator passes with the
 skill installed, and the whole loop runs in dry run with no credentials.
 
 ```bash
+# Windows
 .venv\Scripts\python.exe -m pytest
-.venv\Scripts\python.exe -m cleared.cli run --now 2026-08-28T13:30:00Z --fresh
+# macOS / Linux
+.venv/bin/python -m pytest
+.venv/bin/python -m cleared.cli run --now 2026-08-28T13:30:00Z --fresh
 ```
 
 ## Ground rules
@@ -62,7 +65,71 @@ result is wrong on camera.
 `recipient`. That second one matters most: `scan_transcript` only reads
 recipient turns, so a mislabelled speaker means a **missed opt-out**.
 
-### B2 — Replace outcome scraping with a declared result schema — **high value**
+**Half done.** Three live calls were placed. The captured payload is committed
+at `tests/data/call_run_declined.json` and `tests/test_real_payloads.py` runs
+the extractors over it. Confirmed against real bytes: `extract_status` reads the
+top-level `status`, `extract_summary` finds `result.post_summary`, and
+`extract_transcript` returns empty when `result.transcript` is null.
+
+Three bugs came out of it, all fixed:
+
+- `_report_from` kept only the summary and status and dropped the payload, so a
+  live call could never leave evidence behind. There is now a `capture_path` on
+  `CalleCaller` and a `run --execute --capture-payload PATH` flag, writing the
+  payload through `redact_payload`.
+- **fastmcp 3.x returns a `CallToolResult` object with no `model_dump`**, and
+  `_call_tool` tested for exactly that method. Every extractor read `None` off
+  the raw object and `--execute` could never get past `plan_call did not return
+  ready_to_run=true`. The whole live path was dead. `unwrap_tool_result` now
+  reads `structured_content`, then JSON in `content[i].text`, then `model_dump`.
+  Worse, `plan_targets_only` saw no numbers in an object it could not read, so
+  the wrong-number check passed vacuously; nothing was mis-dialled only because
+  `ready_to_run` aborted first.
+- `DECLINED` mapped to `refusal`, so a call that never rang was recorded as the
+  consumer refusing to pay. Every provider status now maps to `no_answer`: a
+  status says whether the call connected, never what was said on it.
+
+**Still open, and it is the acceptance criterion.** `normalize_speaker` has
+never seen a real speaker label, because no call has connected. `AGENT_LABELS`
+and `RECIPIENT_LABELS` remain guesses, and being wrong there is a silently
+missed opt-out.
+
+**Why no call connects.** Three attempts across two Nigerian carriers (0915 and
+0704) all returned `DECLINED` with `duration_seconds: 0`, `hangup_type:
+ByCallee`, and identical start and end times. The phone never rang. CALL-E's
+docs explain it: NG is reachable only over their *international* lines, which
+are "primarily intended for testing", and international caller ID into Nigeria
+is routinely rejected at the carrier. The documented fix is to ask the CALL-E
+team to enable a local line for the destination country.
+
+**Do next.** Either get a local NG line enabled, or place the one validating
+call to a number in a region served by a local line. The speaker labels are not
+region-specific, so any connected call anywhere closes this.
+
+### B2 — Replace outcome scraping with a declared result schema — **NOT POSSIBLE**
+
+**The premise is false against the deployed server.** `plan_call` has no
+`result_schema` parameter. Sending one is rejected at create time with
+`1 validation error for call[plan_call] / result_schema / Unexpected keyword
+argument`, and because an unknown key fails the call rather than being ignored,
+attempting this breaks every live run.
+
+Introspecting the live tool gives its entire surface, and there is no field for
+a declared result anywhere on it:
+
+```text
+plan_id  to_phones  region  language  goal
+scheduled_at  retry_confirmation_action  user_input  ttl_seconds
+```
+
+`tests/test_calle_caller.py` now pins that set, so a hopeful key cannot silently
+break the live path again. Re-check the premise against whatever CALL-E build
+`apps/python/leash`'s author was using before anyone tries this again; if a
+newer server does accept it, the constraints below still apply.
+
+The original brief is kept below, unchanged, for whoever revisits it.
+
+### B2 (original brief) — Replace outcome scraping with a declared result schema
 
 **Where:** `cleared/callers.py` `build_plan_arguments`, `cleared/script.py`
 `CALL_GOAL_TEMPLATE`
