@@ -138,11 +138,18 @@ TERMINAL_STATUSES = {
     "NO_ANSWER",
     "VOICEMAIL",
 }
+# A provider status says whether the call connected, never what was said on it.
+# `refusal` is a claim that the recipient refused to arrange payment, and that
+# claim goes into an append-only record about a consumer, so it may only be made
+# from words someone actually spoke. Every status here therefore means the same
+# thing: nobody was reached. DECLINED mapped to `refusal` until a real run came
+# back DECLINED with duration_seconds 0, no transcript, and identical start and
+# end times -- a call that never rang, recorded as a consumer refusing to pay.
 STATUS_TO_OUTCOME = {
     "BUSY": "no_answer",
     "CANCELED": "no_answer",
     "CANCELLED": "no_answer",
-    "DECLINED": "refusal",
+    "DECLINED": "no_answer",
     "EXPIRED": "no_answer",
     "FAILED": "no_answer",
     "NO_ANSWER": "no_answer",

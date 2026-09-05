@@ -1,0 +1,183 @@
+{
+  "activity": [
+    {
+      "data": {},
+      "kind": "stage_start",
+      "level": "info",
+      "message": "run_call started.",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:00:42.690740Z"
+    },
+    {
+      "data": {},
+      "kind": "external_call",
+      "level": "info",
+      "message": "botlab create bot.",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:00:45.602516Z"
+    },
+    {
+      "data": {},
+      "kind": "external_call",
+      "level": "info",
+      "message": "calling resolve robot id.",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:01:06.666198Z"
+    },
+    {
+      "data": {},
+      "kind": "external_call",
+      "level": "info",
+      "message": "calling create task.",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:01:09.258201Z"
+    },
+    {
+      "data": {},
+      "kind": "result",
+      "level": "info",
+      "message": "calling task created.",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:01:10.404985Z"
+    },
+    {
+      "data": {},
+      "kind": "progress",
+      "level": "info",
+      "message": "calling task status=pending",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:01:10.898118Z"
+    },
+    {
+      "data": {},
+      "kind": "progress",
+      "level": "info",
+      "message": "calling task status=calling",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:01:18.574353Z"
+    },
+    {
+      "data": {},
+      "kind": "callee_realtime",
+      "level": "info",
+      "message": "Call ended; syncing final Calling result.",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:01:22.705329Z"
+    },
+    {
+      "data": {},
+      "kind": "progress",
+      "level": "info",
+      "message": "calling task status=DECLINED",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:01:48.681050Z"
+    },
+    {
+      "data": {},
+      "kind": "error",
+      "level": "error",
+      "message": "calling task completed with status=DECLINED",
+      "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+      "ts": "2026-09-05T16:02:03.658959Z"
+    }
+  ],
+  "display_goal": "Place one outbound account-servicing call to the recipient about account ending/A-9001.\n\nOpen the call by saying this disclosure, in full, before anything else:\n\n\"Hello, this is an automated assistant calling on behalf of Northbridge Lending about your account ending 9001. This is an attempt to collect a debt, and any information obtained will be used for that purpose. If you would like us to stop calling, say stop calling and I will end this call and remove your number.\"\n\nThen say:\n\n\"Our records show a balance of 145.00 USD that is past due. I am only here to arrange a payment date. Would you like to set a date to pay, or would you rather discuss this with a person?\"\n\nRules for this call:\n- Do not skip, shorten, or paraphrase the opening disclosure.\n- If the recipient says anything that means stop calling, do not call again, take me off your list, or opt me out: immediately acknowledge with \"Understood. I will remove your number and you will not receive further calls from us. Goodbye.\" then end the call. Do not attempt to keep them on the line, do not ask why, and do not offer alternatives.\n- Handle payment logistics only by arranging a payment date. Do not request or collect card numbers, bank details, payment credentials, verification codes, OTPs, or other payment details. Do not give financial, legal, or credit advice, do not negotiate the balance, and do not threaten any consequence.\n- If the recipient disputes the debt, acknowledge the dispute, state that it will be recorded, and end the call.\n- If the recipient asks to discuss the matter with a person and no live transfer is available, acknowledge the request and report the outcome as refusal unless they also disputes the debt or opts out.\n- Keep the call under three minutes.\n\nEnd the call by reporting exactly one outcome from this list: promise_to_pay, dispute, refusal, no_answer, opt_out. If the outcome is promise_to_pay, also report the date the recipient committed to, in YYYY-MM-DD format. If nobody answers, report no_answer; leaving a voicemail is not a successful promise-to-pay outcome.",
+  "expires_at": null,
+  "message": "The first call did not connect and the recipient may be busy or unavailable; you can confirm retrying in about 45 minutes, provide a different retry time, or ask to retry immediately.",
+  "next_cursor": "1788624123659-0",
+  "next_step": {
+    "action": "ask_user_for_retry_confirmation",
+    "instruction": "The first call did not connect and the recipient may be busy or unavailable; you can confirm retrying in about 45 minutes, provide a different retry time, or ask to retry immediately.",
+    "parent_run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+    "plan_id": "p61C9E1EV",
+    "poll_after_seconds": null,
+    "required_user_input": [],
+    "run_id": null,
+    "schedule_timezone": null,
+    "scheduled_at": null,
+    "tool_name": "plan_call"
+  },
+  "parent_run_id": null,
+  "requested_run_id": null,
+  "result": {
+    "batch": null,
+    "call_id": "fded96ff47254e03992f8094e46f0b01",
+    "call_ids": [
+      "fded96ff47254e03992f8094e46f0b01"
+    ],
+    "extracted": {
+      "calling": {
+        "callee_count": 1,
+        "calls": [
+          {
+            "call_end_time": "2026-09-05 12:01:20",
+            "call_start_time": "2026-09-05 12:01:20",
+            "duration_seconds": 0,
+            "hangup_type": "ByCallee",
+            "intention": "F",
+            "ring_type": "normal",
+            "status": "DECLINED"
+          }
+        ],
+        "duration_seconds": 0,
+        "ended_at": "2026-09-05 12:01:20",
+        "started_at": "2026-09-05 12:01:20",
+        "status": "DECLINED"
+      },
+      "goal": "Place one outbound account-servicing call to the recipient about account ending/A-9001.\n\nOpen the call by saying this disclosure, in full, before anything else:\n\n\"Hello, this is an automated assistant calling on behalf of Northbridge Lending about your account ending 9001. This is an attempt to collect a debt, and any information obtained will be used for that purpose. If you would like us to stop calling, say stop calling and I will end this call and remove your number.\"\n\nThen say:\n\n\"Our records show a balance of 145.00 USD that is past due. I am only here to arrange a payment date. Would you like to set a date to pay, or would you rather discuss this with a person?\"\n\nRules for this call:\n- Do not skip, shorten, or paraphrase the opening disclosure.\n- If the recipient says anything that means stop calling, do not call again, take me off your list, or opt me out: immediately acknowledge with \"Understood. I will remove your number and you will not receive further calls from us. Goodbye.\" then end the call. Do not attempt to keep them on the line, do not ask why, and do not offer alternatives.\n- Handle payment logistics only by arranging a payment date. Do not request or collect card numbers, bank details, payment credentials, verification codes, OTPs, or other payment details. Do not give financial, legal, or credit advice, do not negotiate the balance, and do not threaten any consequence.\n- If the recipient disputes the debt, acknowledge the dispute, state that it will be recorded, and end the call.\n- If the recipient asks to discuss the matter with a person and no live transfer is available, acknowledge the request and report the outcome as refusal unless they also disputes the debt or opts out.\n- Keep the call under three minutes.\n\nEnd the call by reporting exactly one outcome from this list: promise_to_pay, dispute, refusal, no_answer, opt_out. If the outcome is promise_to_pay, also report the date the recipient committed to, in YYYY-MM-DD format. If nobody answers, report no_answer; leaving a voicemail is not a successful promise-to-pay outcome.",
+      "language": "English",
+      "region": "NG",
+      "repair": {
+        "commit_metadata": {
+          "blocked_reasons": [],
+          "child_run_id": null,
+          "committed_action": "none",
+          "real_world_action_committed": false
+        },
+        "decision": {
+          "execution_mode": "time_shift_retry",
+          "next_step": {
+            "action": "ask_user_for_retry_confirmation",
+            "instruction": "The first call did not connect and the recipient may be busy or unavailable; you can confirm retrying in about 45 minutes, provide a different retry time, or ask to retry immediately.",
+            "parent_run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+            "plan_id": "p61C9E1EV",
+            "required_user_input": [],
+            "tool_name": "plan_call"
+          },
+          "repair_type": "no_answer",
+          "required_user_input": [],
+          "schedule_suggestion": {
+            "confidence": "medium",
+            "requested_delay_minutes": null,
+            "retry_after_reason": "The recipient did not connect, so a short retry delay is appropriate.",
+            "retry_strategy": "short_delay"
+          }
+        }
+      },
+      "to_phones": [
+        "+2********9724"
+      ]
+    },
+    "outcome": {
+      "completion_confidence": {
+        "label": "high",
+        "score": 0.78
+      },
+      "evidence": [
+        "The call ended immediately with no conversation.",
+        "No speech or transcript was captured.",
+        "No payment date, dispute, refusal, or opt-out outcome was obtained."
+      ],
+      "task_completed": false
+    },
+    "post_summary": "The first call did not connect and the recipient may be busy or unavailable; you can confirm retrying in about 45 minutes, provide a different retry time, or ask to retry immediately.",
+    "summary": "The first call did not connect and the recipient may be busy or unavailable; you can confirm retrying in about 45 minutes, provide a different retry time, or ask to retry immediately.",
+    "transcript": null
+  },
+  "root_run_id": null,
+  "run_id": "x_8iu2QiMUaEqT5bwE5Bkg",
+  "schedule_mode": "immediate",
+  "schedule_timezone": null,
+  "scheduled_at": null,
+  "status": "DECLINED"
+}
