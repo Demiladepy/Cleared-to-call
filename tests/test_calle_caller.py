@@ -17,8 +17,10 @@ from cleared.calle_caller import (
     extract_summary,
     extract_transcript,
     plan_targets_only,
+    first_value,
     resolve_server_url,
     token_cache_path,
+    unwrap_tool_result,
 )
 from cleared.revocation import scan_transcript
 from cleared.schema import TranscriptTurn
@@ -199,3 +201,60 @@ def test_provider_metadata_carries_only_a_masked_number(account, policy):
     assert payload["phone_masked"] == "+1******1234"
     assert payload["audit_ref"] == "aud_12345678"
     assert account.phone_e164 not in str(payload)
+
+
+# The shape fastmcp actually hands back (B1)
+#
+# fastmcp 3.x returns a `CallToolResult` object, not a dict, and it carries no
+# `model_dump`. Everything here walks dicts and lists, so against the real
+# object every extractor returned None and `plan_targets_only` saw no numbers at
+# all. These fakes mirror the real instance: attributes `structured_content`,
+# `content` (list of objects with `.text` holding JSON), `is_error`.
+
+
+class FakeTextContent:
+    def __init__(self, text):
+        self.type = "text"
+        self.text = text
+
+
+class FakeToolResult:
+    """Mirrors fastmcp.client.client.CallToolResult: a plain object, no model_dump."""
+
+    def __init__(self, structured_content=None, content=None, is_error=False):
+        self.structured_content = structured_content
+        self.content = content or []
+        self.is_error = is_error
+        self.meta = None
+
+
+def test_the_structured_content_of_a_tool_result_is_unwrapped():
+    result = FakeToolResult(structured_content={"plan_id": "p-1", "ready_to_run": True})
+    assert unwrap_tool_result(result) == {"plan_id": "p-1", "ready_to_run": True}
+
+
+def test_a_tool_result_with_only_text_content_is_parsed_as_json():
+    result = FakeToolResult(content=[FakeTextContent('{"plan_id": "p-2", "ready_to_run": true}')])
+    assert unwrap_tool_result(result) == {"plan_id": "p-2", "ready_to_run": True}
+
+
+def test_a_plain_dict_is_returned_unchanged():
+    assert unwrap_tool_result({"plan_id": "p-3"}) == {"plan_id": "p-3"}
+
+
+def test_unparseable_text_content_does_not_crash_the_unwrap():
+    result = FakeToolResult(content=[FakeTextContent("not json at all")])
+    unwrap_tool_result(result)
+
+
+def test_ready_to_run_is_readable_through_a_real_tool_result():
+    result = FakeToolResult(structured_content={"ready_to_run": True, "plan_id": "p-4"})
+    assert first_value(unwrap_tool_result(result), ("ready_to_run",)) is True
+    assert first_value(unwrap_tool_result(result), ("plan_id",)) == "p-4"
+
+
+def test_a_wrong_number_inside_a_real_tool_result_is_still_refused():
+    """The safety check must not pass vacuously just because the payload is an object."""
+    result = FakeToolResult(structured_content={"to_phones": ["+15550109999"]})
+    with pytest.raises(CallerError, match="other than the"):
+        plan_targets_only(unwrap_tool_result(result), "+15550101234")

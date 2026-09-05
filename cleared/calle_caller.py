@@ -129,6 +129,36 @@ def check_auth(calle_command: str, base_url: str, channel: str, server_url: str)
         return {}
 
 
+def unwrap_tool_result(result: Any) -> Any:
+    """The dict inside whatever the MCP client handed back.
+
+    fastmcp 3.x returns a `CallToolResult` object with no `model_dump`, carrying
+    the real payload on `structured_content` and a JSON copy in `content[i].text`.
+    Everything downstream walks dicts and lists, so an unwrapped object reads as
+    empty: every extractor returns None and `plan_targets_only` sees no numbers
+    to object to. Unwrap once, here, so no caller has to know the transport type.
+    """
+    if isinstance(result, (dict, list, tuple)):
+        return result
+
+    structured = getattr(result, "structured_content", None)
+    if isinstance(structured, dict):
+        return structured
+
+    for item in getattr(result, "content", None) or []:
+        text = getattr(item, "text", None)
+        if isinstance(text, str) and text.strip():
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                continue
+
+    dump = getattr(result, "model_dump", None)
+    if callable(dump):
+        return dump()
+    return result
+
+
 def _payloads(value: Any) -> list[dict[str, Any]]:
     """Every dict inside a nested MCP response, so key lookups can be shallow."""
     found: list[dict[str, Any]] = []
@@ -462,7 +492,7 @@ class CalleCaller:
         result = await client.call_tool(
             name=name, arguments=arguments, meta=meta or None, raise_on_error=False
         )
-        payload = result.model_dump() if hasattr(result, "model_dump") else result
+        payload = unwrap_tool_result(result)
         if getattr(result, "is_error", False):
             raise CallerError(f"{name} failed: {json.dumps(payload, default=str)[:400]}")
         return payload
