@@ -40,13 +40,23 @@ from .callers import (
     build_plan_arguments,
 )
 from .policy import Policy, default_policy
-from .schema import Account, CallReport, TranscriptTurn
+from .schema import Account, CallReport, TranscriptTurn, mask_phone
 from .script import CallScript
 
 INTEGRATION_HEADER = "cleared-to-call/0.1.0"
 E164_IN_TEXT = re.compile(r"\+\d{8,15}")
 PROMISE_DATE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
 INLINE_TURN = re.compile(r"\[\d{2}:\d{2}:\d{2}\]\s*([A-Za-z_]+)\s*:\s*")
+
+SECRET_KEY_HINTS = (
+    "token",
+    "secret",
+    "authorization",
+    "password",
+    "api_key",
+    "apikey",
+    "credential",
+)
 
 AGENT_LABELS = {"bot", "agent", "ai", "assistant", "system", "robot", "callee_bot"}
 RECIPIENT_LABELS = {"user", "customer", "human", "recipient", "consumer", "callee", "caller"}
@@ -233,6 +243,35 @@ def extract_promise_date(summary: str | None, transcript: tuple[TranscriptTurn, 
     return None
 
 
+def _names_a_credential(key: str) -> bool:
+    lowered = key.lower()
+    return any(hint in lowered for hint in SECRET_KEY_HINTS)
+
+
+def redact_payload(value: Any) -> Any:
+    """A copy of a provider payload that is safe to commit.
+
+    B1 needs the real `get_call_run` shape in the repository, but the response
+    carries the number that was dialled and the credential used to dial it.
+    Numbers are masked with the same `mask_phone` the audit log uses, so the
+    committed sample and the audit trail agree. Anything whose key names a
+    credential is dropped whole rather than masked: a partially masked token is
+    still a token.
+    """
+    if isinstance(value, dict):
+        return {
+            key: "<redacted>" if _names_a_credential(str(key)) else redact_payload(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_payload(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_payload(item) for item in value)
+    if isinstance(value, str):
+        return E164_IN_TEXT.sub(lambda match: mask_phone(match.group(0)), value)
+    return value
+
+
 def plan_targets_only(plan: Any, phone: str) -> None:
     """Refuse a plan that mentions any number other than the cleared one."""
     numbers = set()
@@ -269,6 +308,10 @@ class CalleCaller:
     # Called with the run id as soon as the provider returns one, so the runner
     # can record that a call is in flight before it can be lost (B3).
     dispatch_hook: Callable[[str], None] | None = None
+    # Where to save the terminal `get_call_run` payload, redacted. A live call
+    # is expensive and unrepeatable; without this the provider's real response
+    # shape is seen once, at runtime, and then thrown away (B1).
+    capture_path: str | Path | None = None
     audit_ref: str | None = None
     events: list[dict[str, Any]] = field(default_factory=list)
     _token: str | None = field(default=None, init=False, repr=False)
@@ -388,8 +431,20 @@ class CalleCaller:
 
         return self._report_from(final, run_id)
 
+    def _capture(self, final: Any) -> None:
+        """Save the terminal payload, redacted, for the extractor tests to use."""
+        if self.capture_path is None:
+            return
+        target = Path(os.path.expanduser(str(self.capture_path)))
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(redact_payload(final), indent=2, sort_keys=True, default=str) + "\n",
+            encoding="utf-8",
+        )
+
     def _report_from(self, final: Any, run_id: str) -> CallReport:
         """Turn a terminal `get_call_run` payload into a CallReport."""
+        self._capture(final)
         status = extract_status(final)
         summary = extract_summary(final)
         transcript = extract_transcript(final)

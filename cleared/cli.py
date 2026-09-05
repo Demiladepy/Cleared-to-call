@@ -85,6 +85,7 @@ def build_caller(args: argparse.Namespace, policy: Policy, dry_run: bool) -> Cal
         calle_command=args.calle_command,
         poll_interval_seconds=args.poll_interval_seconds,
         poll_timeout_seconds=args.poll_timeout_seconds,
+        capture_path=getattr(args, "capture_payload", None),
     )
 
 
@@ -337,6 +338,15 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--calle-command", default=None)
     run_parser.add_argument("--poll-interval-seconds", type=float, default=10.0)
     run_parser.add_argument("--poll-timeout-seconds", type=float, default=900.0)
+    run_parser.add_argument(
+        "--capture-payload",
+        default=None,
+        metavar="PATH",
+        help=(
+            "Save the provider's terminal get_call_run response to PATH, with numbers "
+            "masked and credentials stripped. Live runs only."
+        ),
+    )
     run_parser.set_defaults(handler=command_run)
 
     evaluate_parser = subparsers.add_parser(
