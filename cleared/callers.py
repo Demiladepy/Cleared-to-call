@@ -161,6 +161,19 @@ class CallerError(RuntimeError):
     """A call could not be placed or could not be followed to a terminal status."""
 
 
+# B2 could not be done as specified. The handoff called for declaring a
+# `result_schema` on plan_call so the outcome is a returned field instead of a
+# regex over the agent's prose. The deployed plan_call has no such parameter:
+# it rejects one at create time with "Unexpected keyword argument", which fails
+# the call outright. Introspecting the live tool gives its whole surface as
+# plan_id, to_phones, region, language, goal, scheduled_at,
+# retry_confirmation_action, user_input and ttl_seconds -- and nothing else.
+#
+# So the outcome still comes from the goal instruction plus the extractors, and
+# tests/test_calle_caller.py pins the accepted parameter set so a hopeful key
+# can never silently break every live call again.
+
+
 def build_plan_arguments(
     account: Account, script: CallScript, *, region: str = "US", language: str = "English"
 ) -> dict[str, Any]:

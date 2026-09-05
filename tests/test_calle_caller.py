@@ -7,6 +7,8 @@ number.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from cleared.callers import CallerError, build_call_metadata, build_plan_arguments
@@ -267,3 +269,37 @@ def test_a_wrong_number_inside_a_real_tool_result_is_still_refused():
     result = FakeToolResult(structured_content={"to_phones": ["+15550109999"]})
     with pytest.raises(CallerError, match="other than the"):
         plan_targets_only(unwrap_tool_result(result), "+15550101234")
+
+
+# B2: what plan_call actually accepts
+#
+# The handoff called for declaring a result_schema on plan_call. The deployed
+# tool has no such parameter: it is rejected at create time with "Unexpected
+# keyword argument", which fails every live call. These names came from
+# introspecting the live tool, not from documentation.
+
+
+PLAN_CALL_PARAMETERS = frozenset(
+    {
+        "plan_id",
+        "to_phones",
+        "region",
+        "language",
+        "goal",
+        "scheduled_at",
+        "retry_confirmation_action",
+        "user_input",
+        "ttl_seconds",
+    }
+)
+
+
+def test_the_plan_payload_sends_only_parameters_plan_call_accepts(account, policy):
+    """An unknown key is not ignored, it fails the call. Never send a hopeful one."""
+    args = build_plan_arguments(account, render_script(account, policy))
+    assert set(args) <= PLAN_CALL_PARAMETERS, set(args) - PLAN_CALL_PARAMETERS
+
+
+def test_no_result_schema_is_sent(account, policy):
+    """Kept as a named regression: this exact key broke every live call."""
+    assert "result_schema" not in build_plan_arguments(account, render_script(account, policy))
