@@ -4,405 +4,581 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cleared to Call</title>
-<script>
-  // Material Symbols renders via ligatures: the element's text is the icon name.
-  // If the font does not arrive - a blocked CDN, an offline laptop, a locked-down
-  // conference network - all 66 icons render as the words "play_arrow",
-  // "verified_user" and so on. Hide them until the font is confirmed, and leave
-  // them hidden if it never comes. Every icon sits beside text that carries the
-  // same meaning, so nothing is lost when they are absent.
-  document.documentElement.className += " icons-pending";
-  (function () {
-    var root = document.documentElement;
-    var face = '20px "Material Symbols Outlined"';
-    function settle(ok) {
-      root.className = root.className.replace(" icons-pending", "");
-      if (!ok) { root.className += " icons-failed"; }
-    }
-    if (!document.fonts || !document.fonts.load) { settle(false); return; }
-    document.fonts.load(face).then(function () {
-      settle(document.fonts.check(face));
-    }).catch(function () { settle(false); });
-    // Never leave the icons hidden forever if the promise never settles.
-    setTimeout(function () {
-      if (root.className.indexOf("icons-pending") !== -1) {
-        settle(document.fonts.check(face));
-      }
-    }, 3000);
-  })();
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet" />
 <style>
+  /* Warm-minimal system — calm canvas, precise ink, one accent.
+     Display at weight 400 with negative tracking; body at 13px. */
   :root {
-    --bg: #f4f6f9;
-    --surface: #ffffff;
-    --surface-muted: #eef1f6;
-    --ink: #0f172a;
-    --ink-muted: #64748b;
-    --ink-soft: #94a3b8;
-    --border: #e2e8f0;
-    --brand: #1d4ed8;
-    --brand-soft: #dbeafe;
-    --brand-ink: #1e3a8a;
-    --ok: #059669;
-    --ok-soft: #d1fae5;
-    --ok-ink: #065f46;
-    --bad: #dc2626;
-    --bad-soft: #fee2e2;
-    --bad-ink: #991b1b;
-    --warn: #d97706;
-    --warn-soft: #fef3c7;
-    --warn-ink: #92400e;
-    --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 8px 24px rgba(15, 23, 42, .06);
-    --radius: 16px;
-    --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --canvas: #f7f7f4;
+    --surface: #f2f1ed;
+    --surface-alt: #ebeae5;
+    --elevated: #ffffff;
+    --ink: #26251e;
+    --ink-deep: #1d1b15;
+    --muted: #606060;
+    --hairline: #e6e5e0;
+    --accent: #f54e00;
+    --green: #1f8a65;
+    --green-soft: #e8f5ef;
+    --red: #cf2d56;
+    --red-soft: #fce8ec;
+    --amber: #c08532;
+    --amber-soft: #faf3e6;
+    --font-display: "Inter", system-ui, -apple-system, sans-serif;
+    --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono", monospace;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-pill: 9999px;
+    --space-xs: 6px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+    --space-2xl: 40px;
+    --space-3xl: 64px;
+    --max: 1080px;
   }
-  * { box-sizing: border-box; }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font-family: var(--font); font-size: 15px; line-height: 1.5;
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
-  }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
-  /* See the ligature guard in <head>. */
-  .icons-pending .icon { visibility: hidden; }
-  .icons-failed .icon { display: none; }
-  .icon {
-    font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal;
-    line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap;
-    direction: ltr; font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
-    display: inline-block; vertical-align: middle;
+    text-rendering: optimizeLegibility;
   }
 
-  /* Top bar ----------------------------------------------------------- */
-  .topbar {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--space-xl); }
+
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.0125em;
+    line-height: 1.2;
   }
-  .topbar .inner {
-    display: flex; align-items: center; gap: 14px; min-height: 64px; flex-wrap: wrap;
-    padding: 10px 0;
+  .heading {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    line-height: 1.3;
   }
-  .brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: -.02em; }
-  .brand .icon { color: var(--brand); font-size: 26px; }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 var(--space-md);
+  }
+  .mono { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+
+  /* Nav --------------------------------------------------------------- */
+  .nav {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(247, 247, 244, 0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .nav .inner {
+    display: flex; align-items: center; gap: var(--space-lg);
+    min-height: 52px; flex-wrap: wrap;
+  }
+  .mark {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
   .spacer { flex: 1; }
-  .pill {
-    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
-    border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .02em;
-    border: 1px solid var(--border); background: var(--surface-muted); color: var(--ink-muted);
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 26px; padding: 0 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
   }
-  .pill.ok { background: var(--ok-soft); color: var(--ok-ink); border-color: transparent; }
-  .pill.bad { background: var(--bad-soft); color: var(--bad-ink); border-color: transparent; }
-
-  /* Simulation banner ------------------------------------------------- */
-  .sim-banner {
-    background: linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%);
-    border-bottom: 1px solid #bfdbfe;
-    padding: 14px 0;
-  }
-  .sim-banner .inner {
-    display: flex; gap: 14px; align-items: flex-start;
-  }
-  .sim-banner .icon { color: var(--brand); font-size: 22px; margin-top: 2px; flex-shrink: 0; }
-  .sim-banner strong { display: block; font-size: 14px; margin-bottom: 2px; }
-  .sim-banner p { margin: 0; color: var(--ink-muted); font-size: 14px; max-width: 72ch; }
+  .tag.ok { border-color: transparent; background: var(--green-soft); color: var(--green); }
+  .tag.bad { border-color: transparent; background: var(--red-soft); color: var(--red); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
   /* Hero -------------------------------------------------------------- */
-  .hero { padding: 36px 0 28px; }
+  .hero { padding: var(--space-3xl) 0 var(--space-2xl); }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: var(--space-2xl);
+    align-items: start;
+  }
   .hero h1 {
-    margin: 0 0 12px; font-size: clamp(28px, 4vw, 40px); line-height: 1.15;
-    font-weight: 700; letter-spacing: -.03em; max-width: 18ch;
+    margin: 0 0 var(--space-lg);
+    font-size: clamp(32px, 5vw, 46px);
+    max-width: 14ch;
   }
-  .hero .lede { margin: 0 0 28px; color: var(--ink-muted); font-size: 17px; max-width: 62ch; }
+  .hero .lede {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 42ch;
+  }
+  .sim-panel {
+    background: var(--elevated);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) var(--space-xl);
+    border-left: 3px solid var(--accent);
+  }
+  .sim-panel .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 var(--space-sm);
+  }
+  .sim-panel p { margin: 0; color: var(--muted); line-height: 1.55; }
 
-  .banner {
-    display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px;
-    border-radius: 12px; margin-bottom: 20px; font-size: 14px;
+  .flash {
+    margin: var(--space-lg) 0 0;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    font-size: 13px;
   }
-  .banner.ok { background: var(--ok-soft); color: var(--ok-ink); }
-  .banner.bad { background: var(--bad-soft); color: var(--bad-ink); }
+  .flash.ok { background: var(--green-soft); color: var(--green); }
+  .flash.bad { background: var(--red-soft); color: var(--red); }
 
-  /* Controls -------------------------------------------------------- */
-  .controls-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--shadow);
+  /* Toolbar ----------------------------------------------------------- */
+  .toolbar {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) var(--space-xl);
+    margin-bottom: var(--space-xl);
   }
-  .controls-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); margin-bottom: 10px; }
-  .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .toolbar-label { margin: 0 0 var(--space-md); }
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+  }
   .presets input { position: absolute; opacity: 0; pointer-events: none; }
   .presets label {
-    display: block; padding: 12px 14px; border-radius: 12px; cursor: pointer;
-    border: 1.5px solid var(--border); background: var(--surface-muted);
-    transition: border-color .12s, background .12s, box-shadow .12s;
+    display: block;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--hairline);
+    background: var(--elevated);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
   }
-  .presets label:hover { border-color: #93c5fd; }
+  .presets label:hover { border-color: #d4d3cd; }
   .presets input:checked + label {
-    border-color: var(--brand); background: var(--brand-soft); box-shadow: 0 0 0 3px rgba(29,78,216,.12);
+    border-color: var(--ink);
+    background: var(--elevated);
+    box-shadow: inset 0 0 0 1px var(--ink);
   }
-  .presets .t { font-size: 14px; font-weight: 600; display: block; }
-  .presets .s { font-size: 12px; color: var(--ink-muted); margin-top: 2px; display: block; }
-  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .presets .t {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+  }
+  .presets .s { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; }
   .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    height: 42px; padding: 0 20px; border-radius: 10px; border: 1px solid transparent;
-    font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer;
-    transition: transform .08s, box-shadow .12s, background .12s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 34px; padding: 0 16px;
+    border-radius: var(--radius-pill);
+    border: 1px solid transparent;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
   }
-  .btn:active { transform: translateY(1px); }
-  .btn-primary { background: var(--brand); color: #fff; }
-  .btn-primary:hover { box-shadow: 0 4px 14px rgba(29,78,216,.28); }
-  .btn-ghost { background: transparent; color: var(--ink-muted); border-color: var(--border); }
-  .btn-ghost:hover { background: var(--surface-muted); color: var(--ink); }
-  .btn-live {
-    background: var(--bad-soft); color: var(--bad-ink); height: 36px; padding: 0 14px; font-size: 13px;
-  }
-  .btn-live:hover { background: var(--bad); color: #fff; }
+  .btn:hover { opacity: 0.88; }
+  .btn-primary { background: var(--ink); color: var(--canvas); }
+  .btn-secondary { background: var(--canvas); color: var(--ink); border-color: var(--hairline); }
+  .btn-live { background: var(--red-soft); color: var(--red); font-size: 12px; height: 30px; padding: 0 12px; }
+  .btn-live:hover { background: var(--red); color: #fff; opacity: 1; }
 
-  /* Flow -------------------------------------------------------------- */
-  .flow {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
-    margin: 28px 0 8px;
+  /* Stats strip ------------------------------------------------------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--elevated);
+    margin-bottom: var(--space-2xl);
   }
-  .flow-step {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px; text-align: center; position: relative;
+  .stat {
+    padding: var(--space-lg) var(--space-xl);
+    border-right: 1px solid var(--hairline);
   }
-  .flow-step .icon { font-size: 28px; color: var(--brand); margin-bottom: 8px; }
-  .flow-step .t { font-size: 13px; font-weight: 600; }
-  .flow-step .s { font-size: 12px; color: var(--ink-muted); margin-top: 4px; }
-  .flow-step:not(:last-child)::after {
-    content: "→"; position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
-    color: var(--ink-soft); font-size: 18px; font-weight: 600;
+  .stat:last-child { border-right: 0; }
+  .stat .k { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .stat .v {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: 6px 0 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .d { font-size: 12px; color: var(--muted); }
+  .stat.refused .v { color: var(--red); }
+  .stat.cleared .v { color: var(--green); }
+  .stat.optouts .v { color: var(--amber); }
+
+  /* Pipeline ---------------------------------------------------------- */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: var(--space-3xl);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .pipe-step {
+    flex: 1;
+    padding: var(--space-lg) var(--space-xl);
+    position: relative;
+    border-right: 1px solid var(--hairline);
+  }
+  .pipe-step:last-child { border-right: 0; }
+  .pipe-step .n {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: var(--space-sm);
+  }
+  .pipe-step .t {
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: -0.005em;
+    margin-bottom: 2px;
+  }
+  .pipe-step .s { font-size: 12px; color: var(--muted); }
+
+  /* Section ----------------------------------------------------------- */
+  section { padding-bottom: var(--space-3xl); }
+  .sec-head { margin-bottom: var(--space-xl); }
+  .sec-head h2 { margin: 0 0 var(--space-xs); font-size: 22px; }
+  .sec-head p { margin: 0; color: var(--muted); max-width: 52ch; }
+
+  /* Decision list ----------------------------------------------------- */
+  .decisions {
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    background: var(--elevated);
+    overflow: hidden;
+  }
+  .decision {
+    border-bottom: 1px solid var(--hairline);
+    display: grid;
+    grid-template-columns: 3px 1fr;
+  }
+  .decision:last-child { border-bottom: 0; }
+  .decision-bar { background: var(--hairline); }
+  .decision.refused .decision-bar { background: var(--red); }
+  .decision.cleared .decision-bar { background: var(--green); }
+  .decision.optout .decision-bar { background: var(--amber); }
+  .decision-inner { padding: var(--space-xl); min-width: 0; }
+
+  .decision-top {
+    display: flex;
+    gap: var(--space-lg);
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: var(--space-md);
+  }
+  .decision-id { flex: 1; min-width: 200px; }
+  .decision-id .name {
+    font-family: var(--font-display);
+    font-size: 16px;
+    letter-spacing: -0.005em;
+    margin: 0 0 4px;
+  }
+  .decision-id .meta { font-size: 12px; color: var(--muted); }
+  .verdict {
+    font-family: var(--font-display);
+    font-size: 13px;
+    letter-spacing: -0.005em;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    white-space: nowrap;
+  }
+  .verdict.allow { border-color: transparent; background: var(--green-soft); color: var(--green); }
+  .verdict.block { border-color: transparent; background: var(--red-soft); color: var(--red); }
+  .verdict.warn { border-color: transparent; background: var(--amber-soft); color: var(--amber); }
+
+  .decision-verdict {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 var(--space-md);
+    max-width: 58ch;
+  }
+  .decision-verdict strong { font-weight: 600; color: var(--ink-deep); }
+
+  .scenario-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-top: var(--space-sm);
   }
 
-  /* Metrics ----------------------------------------------------------- */
-  .metrics {
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin: 24px 0 32px;
+  /* Rule matrix ------------------------------------------------------- */
+  .rule-matrix {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
   }
-  .metric {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-    padding: 18px 20px; box-shadow: var(--shadow);
+  .rule-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--hairline);
+    background: var(--canvas);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
   }
-  .metric .k { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
-  .metric .v { font-size: 34px; font-weight: 700; line-height: 1.1; margin: 8px 0 4px; font-variant-numeric: tabular-nums; }
-  .metric .d { font-size: 13px; color: var(--ink-muted); }
-  .metric.refused .v { color: var(--bad); }
-  .metric.cleared .v { color: var(--ok); }
-  .metric.optouts .v { color: var(--warn); }
+  .rule-cell.pass { border-color: #c5e6d6; background: var(--green-soft); color: var(--green); }
+  .rule-cell.fail { border-color: #f0c4cc; background: var(--red-soft); color: var(--red); }
+  .rule-cell.pending { opacity: 0.7; }
+  .rule-cell .mark {
+    width: 14px; height: 14px; border-radius: 2px;
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 700;
+    background: rgba(0,0,0,0.06);
+  }
+  .rule-cell.pass .mark { background: rgba(31,138,101,0.15); }
+  .rule-cell.fail .mark { background: rgba(207,45,86,0.12); }
 
-  /* Section headers --------------------------------------------------- */
-  section { padding: 8px 0 36px; }
-  .sec-head { margin-bottom: 18px; }
-  .sec-head h2 { margin: 0 0 6px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
-  .sec-head p { margin: 0; color: var(--ink-muted); font-size: 14px; max-width: 65ch; }
-
-  /* Account cards ----------------------------------------------------- */
-  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-  .acct {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column;
+  /* Expand panels ----------------------------------------------------- */
+  details.fold > summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+    user-select: none;
   }
-  .acct.refused { border-color: #fecaca; }
-  .acct.optout { border-color: #fde68a; }
-  .acct-head {
-    padding: 18px 20px 14px; display: flex; gap: 14px; align-items: flex-start;
-    border-bottom: 1px solid var(--border);
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::before { content: "+"; font-family: var(--font-mono); font-size: 11px; }
+  details.fold[open] > summary::before { content: "−"; }
+  .fold-body {
+    margin-top: var(--space-md);
+    padding: var(--space-lg);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--muted);
   }
-  .acct-avatar {
-    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
-    display: grid; place-items: center; font-weight: 700; font-size: 15px;
-    background: var(--surface-muted); color: var(--ink-muted);
-  }
-  .acct.refused .acct-avatar { background: var(--bad-soft); color: var(--bad-ink); }
-  .acct.cleared .acct-avatar { background: var(--ok-soft); color: var(--ok-ink); }
-  .acct.optout .acct-avatar { background: var(--warn-soft); color: var(--warn-ink); }
-  .acct-title { flex: 1; min-width: 0; }
-  .acct-title .name { font-size: 17px; font-weight: 700; margin: 0 0 2px; }
-  .acct-title .meta { font-size: 13px; color: var(--ink-muted); }
-  .acct-title .meta .num { font-variant-numeric: tabular-nums; }
-  .verdict-badge {
-    flex-shrink: 0; padding: 6px 10px; border-radius: 8px; font-size: 11px;
-    font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  }
-  .verdict-badge.allow { background: var(--ok-soft); color: var(--ok-ink); }
-  .verdict-badge.block { background: var(--bad-soft); color: var(--bad-ink); }
-
-  .acct-body { padding: 16px 20px 18px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
-  .verdict-text { font-size: 15px; font-weight: 600; margin: 0; }
-  .verdict-text.block { color: var(--bad-ink); }
-  .verdict-text.allow { color: var(--ok-ink); }
-  .verdict-text.optout { color: var(--warn-ink); }
-  .verdict-sub { font-size: 13px; color: var(--ink-muted); margin: 4px 0 0; }
-
-  .rules { display: flex; flex-wrap: wrap; gap: 8px; }
-  .rule {
-    display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px;
-    border-radius: 999px; font-size: 12px; font-weight: 600;
-  }
-  .rule.pass { background: var(--ok-soft); color: var(--ok-ink); }
-  .rule.fail { background: var(--bad-soft); color: var(--bad-ink); }
-  .rule.pending { background: var(--surface-muted); color: var(--ink-soft); }
-  .rule .icon { font-size: 16px; }
-
-  .demo-tag {
-    display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
-    color: var(--brand-ink); background: var(--brand-soft); padding: 4px 8px; border-radius: 6px;
+  .fold-body .row { margin-bottom: 5px; }
+  .fold-body .row:last-child { margin-bottom: 0; }
+  .fold-body code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--elevated);
+    padding: 1px 5px;
+    border-radius: 2px;
+    border: 1px solid var(--hairline);
+    color: var(--ink);
   }
 
-  details.panel > summary {
-    cursor: pointer; list-style: none; font-size: 13px; font-weight: 600;
-    color: var(--brand); display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 0; user-select: none;
+  .transcript .turn {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+    font-size: 13px;
+    line-height: 1.5;
   }
-  details.panel > summary::-webkit-details-marker { display: none; }
-  details.panel > summary .chev { transition: transform .15s; font-size: 18px; }
-  details.panel[open] > summary .chev { transform: rotate(180deg); }
-  .panel-body {
-    margin-top: 10px; padding: 14px; background: var(--surface-muted);
-    border-radius: 10px; font-size: 13px; color: var(--ink-muted);
+  .transcript .turn:last-child { margin-bottom: 0; }
+  .transcript .who {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 2px;
   }
-  .panel-body .row { margin-bottom: 6px; }
-  .panel-body .row:last-child { margin-bottom: 0; }
-  .panel-body code {
-    font-size: 12px; background: var(--surface); padding: 2px 6px; border-radius: 4px;
-    border: 1px solid var(--border); color: var(--ink);
-  }
+  .transcript .turn.revoked .what { color: var(--amber); font-weight: 500; }
+  .transcript .turn.verdict .what { color: var(--amber); }
 
-  .transcript { margin-top: 4px; }
-  .turn {
-    display: flex; gap: 12px; margin-bottom: 10px; font-size: 14px;
-  }
-  .turn:last-child { margin-bottom: 0; }
-  .turn .who {
-    flex: 0 0 72px; font-size: 10px; font-weight: 700; letter-spacing: .06em;
-    text-transform: uppercase; color: var(--ink-soft); padding-top: 3px;
-  }
-  .turn.revoked .what { color: var(--warn-ink); font-weight: 600; }
-  .turn.verdict .what { color: var(--warn-ink); font-weight: 500; }
+  .decision-foot { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--hairline); }
 
-  .acct-foot {
-    padding: 0 20px 16px; margin-top: auto;
+  /* Ledger ------------------------------------------------------------ */
+  .ledger {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: var(--space-xl);
+    align-items: start;
   }
-
-  /* Bottom panels ----------------------------------------------------- */
-  .panels { display: grid; grid-template-columns: 1.1fr .9fr; gap: 20px; align-items: start; }
-  .panels > * { min-width: 0; }
-  .panel-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+  .ledger > * { min-width: 0; }
+  .panel {
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    background: var(--elevated);
+    overflow: hidden;
   }
-  .panel-card h3 {
-    margin: 0; padding: 18px 20px 0; font-size: 16px; font-weight: 700;
-  }
-  .panel-card .sub { padding: 4px 20px 16px; font-size: 13px; color: var(--ink-muted); margin: 0; }
-  .audit-item {
-    display: flex; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--border);
+  .panel-head { padding: var(--space-lg) var(--space-xl); border-bottom: 1px solid var(--hairline); }
+  .panel-head h3 { margin: 0 0 4px; font-size: 16px; }
+  .panel-head p { margin: 0; font-size: 12px; color: var(--muted); }
+  .ledger-row {
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--hairline);
     align-items: flex-start;
   }
-  .audit-dot {
-    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
-    display: grid; place-items: center;
+  .ledger-row:last-of-type { border-bottom: 0; }
+  .ledger-mark {
+    width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
   }
-  .audit-dot.allow { background: var(--ok-soft); color: var(--ok-ink); }
-  .audit-dot.block { background: var(--bad-soft); color: var(--bad-ink); }
-  .audit-item .t { font-size: 14px; font-weight: 600; }
-  .audit-item .s { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+  .ledger-mark.allow { background: var(--green); }
+  .ledger-mark.block { background: var(--red); }
+  .ledger-mark.warn { background: var(--amber); }
+  .ledger-row .t { font-size: 13px; font-weight: 500; }
+  .ledger-row .s { font-size: 11px; color: var(--muted); margin-top: 2px; }
   .panel-foot {
-    padding: 14px 20px; border-top: 1px solid var(--border);
-    font-size: 13px; color: var(--ink-muted); background: var(--surface-muted);
+    padding: var(--space-md) var(--space-xl);
+    border-top: 1px solid var(--hairline);
+    background: var(--surface);
+    font-size: 12px;
+    color: var(--muted);
   }
 
-  .sup-item {
-    display: flex; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--border);
-    align-items: center;
+  .policy-row {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--hairline);
   }
-  .sup-item .icon-wrap {
-    width: 32px; height: 32px; border-radius: 8px; background: var(--warn-soft);
-    color: var(--warn-ink); display: grid; place-items: center; flex-shrink: 0;
-  }
-  .policy-item {
-    padding: 14px 20px; border-top: 1px solid var(--border);
-  }
-  .policy-item .t { font-size: 14px; font-weight: 600; }
-  .policy-item .s { font-size: 13px; color: var(--ink-muted); margin-top: 4px; }
+  .policy-row:last-child { border-bottom: 0; }
+  .policy-row .t { font-size: 13px; font-weight: 500; }
+  .policy-row .s { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
   footer {
-    padding: 28px 0 48px; border-top: 1px solid var(--border);
-    font-size: 13px; color: var(--ink-muted);
+    padding: var(--space-2xl) 0 var(--space-3xl);
+    border-top: 1px solid var(--hairline);
+    font-size: 12px;
+    color: var(--muted);
   }
 
-  @media (max-width: 960px) {
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; }
     .presets { grid-template-columns: repeat(2, 1fr); }
-    .flow { grid-template-columns: repeat(2, 1fr); }
-    .flow-step:nth-child(2)::after { display: none; }
-    .flow-step:not(:nth-child(2n))::after { display: none; }
-    .metrics { grid-template-columns: repeat(3, 1fr); }
-    .cards { grid-template-columns: 1fr; }
-    .panels { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(3, 1fr); }
+    .stat:nth-child(3) { border-right: 0; }
+    .stat:nth-child(4), .stat:nth-child(5) { border-top: 1px solid var(--hairline); }
+    .pipeline { flex-direction: column; }
+    .pipe-step { border-right: 0; border-bottom: 1px solid var(--hairline); }
+    .pipe-step:last-child { border-bottom: 0; }
+    .ledger { grid-template-columns: 1fr; }
   }
-  @media (max-width: 600px) {
-    .wrap { padding: 0 16px; }
-    .metrics { grid-template-columns: repeat(2, 1fr); }
-    .flow { grid-template-columns: 1fr; }
-    .flow-step::after { display: none !important; }
+  @media (max-width: 560px) {
+    .wrap { padding: 0 var(--space-lg); }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat { border-right: 0; border-bottom: 1px solid var(--hairline); }
+    .stat:nth-child(odd) { border-right: 1px solid var(--hairline); }
+    .stat:last-child { border-bottom: 0; }
+    .presets { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero, .toolbar, .stats, .pipeline, .decisions, .ledger {
+      animation: rise 0.5s ease both;
+    }
+    .toolbar { animation-delay: 0.04s; }
+    .stats { animation-delay: 0.08s; }
+    .pipeline { animation-delay: 0.1s; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   }
 </style>
 </head>
 <body>
 
-<header class="topbar">
+<nav class="nav">
   <div class="wrap inner">
-    <div class="brand"><span class="icon">verified_user</span> Cleared to Call</div>
+    <span class="mark">Cleared to Call</span>
     <div class="spacer"></div>
-    <span class="pill"><span class="icon" style="font-size:16px">public</span>{{ policy.jurisdiction }}</span>
+    <span class="tag"><span class="dot"></span>{{ policy.jurisdiction }}</span>
     {% if verification.ok %}
-      <span class="pill ok"><span class="icon" style="font-size:16px">link</span>Audit chain intact</span>
+      <span class="tag ok"><span class="dot"></span>Audit chain intact</span>
     {% else %}
-      <span class="pill bad"><span class="icon" style="font-size:16px">link_off</span>Chain broken</span>
+      <span class="tag bad"><span class="dot"></span>Chain broken</span>
     {% endif %}
+  </div>
+</nav>
+
+<header class="wrap hero">
+  <div class="hero-grid">
+    <div>
+      <p class="eyebrow">Compliance gate for outbound collections</p>
+      <h1 class="display">Lawful call, or provably refused.</h1>
+      <p class="lede">
+        Five US federal rules run before every dial — call window, consent, suppression,
+        disclosure, and live opt-out. Refused calls never reach a provider.
+      </p>
+      {% if message %}<div class="flash ok">{{ message }}</div>{% endif %}
+      {% if error %}<div class="flash bad">{{ error }}</div>{% endif %}
+    </div>
+    <aside class="sim-panel">
+      <p class="label">Simulation mode</p>
+      <p>
+        Borrowers and numbers are fixtures. The gate, audit chain, and opt-out detection
+        are real.
+        {% if run and run.dry_run %}Only dialing is simulated.{% endif %}
+        {% if serverless %}Live calling is disabled on this deployment.{% endif %}
+      </p>
+    </aside>
   </div>
 </header>
 
-<div class="sim-banner">
-  <div class="wrap inner">
-    <span class="icon">science</span>
-    <div>
-      <strong>Compliance simulation — fictional borrowers, real gate logic</strong>
-      <p>
-        Names and phone numbers are demo fixtures (555 range). The five-rule gate, disclosure check,
-        opt-out detection, and tamper-evident audit log all run for real.
-        {% if run and run.dry_run %}Only the phone dial is simulated — nothing is actually called.{% endif %}
-        {% if serverless %} This public deployment is read-only; live calling is disabled.{% endif %}
-      </p>
-    </div>
-  </div>
-</div>
-
-<main class="wrap hero">
-  <h1>Lawful call, or provably refused.</h1>
-  <p class="lede">
-    Before any outbound collections call goes out, five US federal rules are checked against
-    each borrower&rsquo;s local time and consent record. Refused calls never reach a dialer.
-  </p>
-
-  {% if message %}
-  <div class="banner ok"><span class="icon">info</span><div>{{ message }}</div></div>
-  {% endif %}
-  {% if error %}
-  <div class="banner bad"><span class="icon">error</span><div>{{ error }}</div></div>
-  {% endif %}
-
-  <div class="controls-card">
-    <div class="controls-label">Evaluate batch as if the clock were</div>
+<main class="wrap">
+  <div class="toolbar">
+    <p class="eyebrow toolbar-label">Set evaluation time</p>
     <form method="post" action="/run">
       <div class="presets">
         {% set presets = [
-          ("2026-08-28T13:30:00Z", "Mid-morning", "US East — most accounts clear"),
-          ("2026-08-28T02:00:00Z", "Late evening", "Shows time-window blocks"),
+          ("2026-08-28T13:30:00Z", "Mid-morning", "US East — most clear"),
+          ("2026-08-28T02:00:00Z", "Late evening", "Time-window blocks"),
           ("2026-08-28T16:00:00Z", "Midday", "Nationwide mix"),
-          ("", "Right now", "Uses current UTC time")
+          ("", "Right now", "Current UTC")
         ] %}
         {% set known = presets|map("first")|list %}
         {% for value, title, hint in presets %}
@@ -415,112 +591,135 @@
         {% endfor %}
       </div>
       <div class="actions">
-        <button class="btn btn-primary" type="submit"><span class="icon">play_arrow</span>Run compliance check</button>
-        <button class="btn btn-ghost" type="submit" name="fresh" value="1"><span class="icon">restart_alt</span>Reset &amp; start fresh</button>
+        <button class="btn btn-primary" type="submit">Run compliance check</button>
+        <button class="btn btn-secondary" type="submit" name="fresh" value="1">Reset batch</button>
       </div>
     </form>
   </div>
 
-  <div class="flow">
-    <div class="flow-step"><div class="icon">inventory_2</div><div class="t">Load accounts</div><div class="s">Consent, timezone, balance</div></div>
-    <div class="flow-step"><div class="icon">gavel</div><div class="t">Pre-dial gate</div><div class="s">Rules 1–4 must pass</div></div>
-    <div class="flow-step"><div class="icon">{% if summary and summary.blocked %}block{% else %}call{% endif %}</div><div class="t">Call or refuse</div><div class="s">Blocked calls never dial</div></div>
-    <div class="flow-step"><div class="icon">receipt_long</div><div class="t">Audit log</div><div class="s">Hash-chained proof</div></div>
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="n">01</div>
+      <div class="t">Load accounts</div>
+      <div class="s">Consent, timezone, balance</div>
+    </div>
+    <div class="pipe-step">
+      <div class="n">02</div>
+      <div class="t">Pre-dial gate</div>
+      <div class="s">Rules 1–4 evaluated</div>
+    </div>
+    <div class="pipe-step">
+      <div class="n">03</div>
+      <div class="t">Call or refuse</div>
+      <div class="s">Blocked accounts never dial</div>
+    </div>
+    <div class="pipe-step">
+      <div class="n">04</div>
+      <div class="t">Audit log</div>
+      <div class="s">Hash-chained record</div>
+    </div>
   </div>
-</main>
 
-{% if summary %}
-<div class="wrap metrics">
-  <div class="metric">
-    <div class="k">In batch</div>
-    <div class="v">{{ summary.accounts }}</div>
-    <div class="d">Borrowers evaluated</div>
+  {% if summary %}
+  <div class="stats">
+    <div class="stat">
+      <div class="k">In batch</div>
+      <div class="v">{{ summary.accounts }}</div>
+      <div class="d">Evaluated</div>
+    </div>
+    <div class="stat refused">
+      <div class="k">Refused</div>
+      <div class="v">{{ summary.blocked }}</div>
+      <div class="d">Never dialled</div>
+    </div>
+    <div class="stat cleared">
+      <div class="k">Cleared</div>
+      <div class="v">{{ summary.cleared }}</div>
+      <div class="d">Pre-dial pass</div>
+    </div>
+    <div class="stat optouts">
+      <div class="k">Opt-outs</div>
+      <div class="v">{{ summary.opt_outs }}</div>
+      <div class="d">Suppressed</div>
+    </div>
+    <div class="stat">
+      <div class="k">Audit</div>
+      <div class="v">{{ audit_total }}</div>
+      <div class="d">Chain entries</div>
+    </div>
   </div>
-  <div class="metric refused">
-    <div class="k">Refused</div>
-    <div class="v">{{ summary.blocked }}</div>
-    <div class="d">Never reached dialer</div>
-  </div>
-  <div class="metric cleared">
-    <div class="k">Cleared</div>
-    <div class="v">{{ summary.cleared }}</div>
-    <div class="d">Passed all pre-dial rules</div>
-  </div>
-  <div class="metric optouts">
-    <div class="k">Opt-outs</div>
-    <div class="v">{{ summary.opt_outs }}</div>
-    <div class="d">Honoured &amp; suppressed</div>
-  </div>
-  <div class="metric">
-    <div class="k">Audit entries</div>
-    <div class="v">{{ audit_total }}</div>
-    <div class="d">Tamper-evident records</div>
-  </div>
-</div>
-{% endif %}
+  {% endif %}
+</main>
 
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <h2>Borrower decisions</h2>
-      <p>Each card shows whether this person can be called right now, which rules passed or failed, and what happened if a call went through.</p>
+      <p class="eyebrow">Batch results</p>
+      <h2 class="heading">Borrower decisions</h2>
+      <p>Each row is one account. Rules show pass or fail before any call is placed.</p>
     </div>
 
-    <div class="cards">
+    <div class="decisions">
     {% for record in records %}
       {% set result = record.result %}
       {% set acct = record.account %}
-      {% set initials = acct.display_name.split()[0][0] ~ (acct.display_name.split()[-1][0] if acct.display_name.split()|length > 1 else "") %}
       {% set demo_tags = {
-        "A-1002": "Time window demo",
-        "A-1003": "No consent demo",
-        "A-1004": "DNC list demo",
-        "A-1005": "Live opt-out demo"
+        "A-1002": "Time window",
+        "A-1003": "No consent",
+        "A-1004": "DNC list",
+        "A-1005": "Live opt-out"
       } %}
-      <article class="acct {% if not record.decision.allowed %}refused{% elif result.opt_out %}optout{% else %}cleared{% endif %}">
-        <div class="acct-head">
-          <div class="acct-avatar">{{ initials }}</div>
-          <div class="acct-title">
-            <h3 class="name">{{ acct.display_name }}</h3>
-            <div class="meta">
-              <span class="num">{{ acct.masked_phone }}</span> &middot;
-              {{ "%.2f"|format(acct.amount_due) }} {{ acct.currency }} due &middot;
-              {{ record.decision.local_time or "Unknown" }} local
+      <article class="decision {% if not record.decision.allowed %}refused{% elif result.opt_out %}optout{% else %}cleared{% endif %}">
+        <div class="decision-bar"></div>
+        <div class="decision-inner">
+          <div class="decision-top">
+            <div class="decision-id">
+              <h3 class="name">{{ acct.display_name }}</h3>
+              <div class="meta">
+                <span class="mono">{{ acct.masked_phone }}</span>
+                &nbsp;·&nbsp;{{ "%.2f"|format(acct.amount_due) }} {{ acct.currency }}
+                &nbsp;·&nbsp;{{ record.decision.local_time or "Unknown" }} local
+              </div>
+              {% if acct.account_id in demo_tags %}
+              <span class="scenario-tag">{{ demo_tags[acct.account_id] }} scenario</span>
+              {% endif %}
             </div>
-            {% if acct.account_id in demo_tags %}
-            <div style="margin-top:8px"><span class="demo-tag"><span class="icon" style="font-size:14px">tips_and_updates</span>{{ demo_tags[acct.account_id] }}</span></div>
+            {% if record.decision.allowed %}
+              <span class="verdict allow">Cleared</span>
+            {% else %}
+              <span class="verdict block">Refused</span>
             {% endif %}
           </div>
-          {% if record.decision.allowed %}
-            <span class="verdict-badge allow">Cleared</span>
-          {% else %}
-            <span class="verdict-badge block">Refused</span>
-          {% endif %}
-        </div>
 
-        <div class="acct-body">
-          {% if result.block_reason %}
-            <p class="verdict-text block">
-              Cannot call — {% if result.block_reason == "OUTSIDE_CALL_WINDOW" %}outside legal call window (8am–9pm local)
-              {% elif result.block_reason == "NO_CONSENT" %}no prior express consent on file
-              {% elif result.block_reason == "ON_SUPPRESSION_LIST" %}number is on the do-not-call list
-              {% elif result.block_reason == "MISSING_DISCLOSURE" %}required disclosure missing from script
-              {% else %}{{ result.block_reason|replace("_", " ")|title }}{% endif %}
-            </p>
-            <p class="verdict-sub">This account never reached a dialer. The refusal is recorded in the audit log.</p>
-          {% elif result.opt_out %}
-            <p class="verdict-text optout">Call placed — recipient opted out during the call</p>
-            <p class="verdict-sub">The number was added to the suppression list immediately. Future batches will refuse.</p>
-          {% else %}
-            <p class="verdict-text allow">Call placed — {{ result.outcome|replace("_", " ")|title }}</p>
-            {% if result.promise_date %}<p class="verdict-sub">Payment promised for {{ result.promise_date }}</p>{% endif %}
-            {% if record.error %}<p class="verdict-sub">{{ record.error }}</p>{% endif %}
-          {% endif %}
+          <p class="decision-verdict">
+            {% if result.block_reason %}
+              <strong>Cannot call.</strong>
+              {% if result.block_reason == "OUTSIDE_CALL_WINDOW" %}
+                Outside the legal call window (8am–9pm in the recipient's timezone).
+              {% elif result.block_reason == "NO_CONSENT" %}
+                No prior express consent on file.
+              {% elif result.block_reason == "ON_SUPPRESSION_LIST" %}
+                Number is on the do-not-call list.
+              {% elif result.block_reason == "MISSING_DISCLOSURE" %}
+                Required disclosure missing from the call script.
+              {% else %}
+                {{ result.block_reason|replace("_", " ")|title }}.
+              {% endif %}
+              Never reached a dialer.
+            {% elif result.opt_out %}
+              <strong>Call placed — opt-out during call.</strong>
+              Number suppressed immediately. Future batches will refuse.
+            {% else %}
+              <strong>Call placed — {{ result.outcome|replace("_", " ")|title }}.</strong>
+              {% if result.promise_date %} Payment promised for {{ result.promise_date }}.{% endif %}
+              {% if record.error %} {{ record.error }}{% endif %}
+            {% endif %}
+          </p>
 
-          <div class="rules">
+          <div class="rule-matrix">
             {% for rule in record.decision.rules %}
-            <span class="rule {% if rule.passed %}pass{% else %}fail{% endif %}" title="{{ rule.detail }}">
-              <span class="icon">{% if rule.passed %}check{% else %}close{% endif %}</span>
+            <span class="rule-cell {% if rule.passed %}pass{% else %}fail{% endif %}" title="{{ rule.detail }}">
+              <span class="mark">{% if rule.passed %}✓{% else %}×{% endif %}</span>
               {% if rule.name == "call_window" %}Call window
               {% elif rule.name == "consent_on_file" %}Consent
               {% elif rule.name == "not_suppressed" %}Not on DNC
@@ -529,19 +728,19 @@
             </span>
             {% endfor %}
             {% if record.transcript %}
-            <span class="rule {% if result.opt_out %}fail{% else %}pass{% endif %}">
-              <span class="icon">{% if result.opt_out %}close{% else %}check{% endif %}</span>
+            <span class="rule-cell {% if result.opt_out %}fail{% else %}pass{% endif %}">
+              <span class="mark">{% if result.opt_out %}×{% else %}✓{% endif %}</span>
               Live opt-out
             </span>
             {% elif record.decision.allowed %}
-            <span class="rule pending"><span class="icon">schedule</span>Live opt-out</span>
+            <span class="rule-cell pending"><span class="mark">—</span>Live opt-out</span>
             {% endif %}
           </div>
 
           {% if record.transcript %}
-          <details class="panel transcript" {% if record.revocation %}open{% endif %}>
-            <summary><span class="icon chev">expand_more</span> Call transcript ({{ record.transcript|length }} turns){% if record.revocation %} — opt-out detected{% endif %}</summary>
-            <div class="panel-body">
+          <details class="fold transcript" {% if record.revocation %}open{% endif %}>
+            <summary>Transcript · {{ record.transcript|length }} turns{% if record.revocation %} · opt-out detected{% endif %}</summary>
+            <div class="fold-body">
               {% for turn in record.transcript %}
               <div class="turn {% if record.revocation and loop.index0 == record.revocation.turn_index %}revoked{% endif %}">
                 <span class="who">{{ turn.speaker }}</span>
@@ -561,33 +760,32 @@
           </details>
           {% endif %}
 
-          <details class="panel">
-            <summary><span class="icon chev">expand_more</span> Technical details</summary>
-            <div class="panel-body">
-              <div class="row">Account ID: <code>{{ acct.account_id }}</code></div>
-              <div class="row">Timezone: <code>{{ acct.timezone }}</code></div>
+          <details class="fold">
+            <summary>Technical details</summary>
+            <div class="fold-body">
+              <div class="row">Account <code>{{ acct.account_id }}</code> · TZ <code>{{ acct.timezone }}</code></div>
               {% if result.block_reason %}
-              <div class="row">Block code: <code>{{ result.block_reason }}</code></div>
+              <div class="row">Block code <code>{{ result.block_reason }}</code></div>
               {% for rule in record.decision.rules if not rule.passed %}
               <div class="row">{{ rule.rule_id }} — {{ rule.detail }}</div>
               {% endfor %}
               {% else %}
-              <div class="row">Outcome: <code>{{ result.outcome }}</code></div>
+              <div class="row">Outcome <code>{{ result.outcome }}</code></div>
               {% endif %}
-              <div class="row">Audit ref: <code>{{ result.audit_ref }}</code></div>
-              <div class="row">Disclosure given: {% if result.disclosure_given %}yes{% else %}no{% endif %}</div>
+              <div class="row">Audit ref <code>{{ result.audit_ref }}</code></div>
+              <div class="row">Disclosure {% if result.disclosure_given %}given{% else %}not given{% endif %}</div>
             </div>
           </details>
-        </div>
 
-        {% if allow_live and record.decision.allowed %}
-        <div class="acct-foot">
-          <form method="post" action="/call/{{ acct.account_id }}"
-                onsubmit="return confirm('Place a REAL call to {{ acct.masked_phone }}? This spends CALL-E credits.');">
-            <button class="btn btn-live" type="submit"><span class="icon">call</span>Place live call</button>
-          </form>
+          {% if allow_live and record.decision.allowed %}
+          <div class="decision-foot">
+            <form method="post" action="/call/{{ acct.account_id }}"
+                  onsubmit="return confirm('Place a REAL call to {{ acct.masked_phone }}? This spends CALL-E credits.');">
+              <button class="btn btn-live" type="submit">Place live call</button>
+            </form>
+          </div>
+          {% endif %}
         </div>
-        {% endif %}
       </article>
     {% endfor %}
     </div>
@@ -595,15 +793,15 @@
 </section>
 
 <section>
-  <div class="wrap panels">
-    <div class="panel-card">
-      <h3>Audit trail</h3>
-      <p class="sub">Every allow and refuse decision is appended to a hash-chained log. Edits are detectable.</p>
+  <div class="wrap ledger">
+    <div class="panel">
+      <div class="panel-head">
+        <h3 class="heading">Audit trail</h3>
+        <p>Append-only hash chain. Tampering is detectable.</p>
+      </div>
       {% for entry in audit_entries %}
-      <div class="audit-item">
-        <div class="audit-dot {{ entry.decision }}">
-          <span class="icon" style="font-size:18px">{{ 'check' if entry.decision == 'allow' else 'block' }}</span>
-        </div>
+      <div class="ledger-row">
+        <span class="ledger-mark {{ entry.decision }}"></span>
         <div>
           <div class="t">
             {% if entry.block_reason %}
@@ -612,13 +810,13 @@
               Cleared — {{ entry.outcome|replace("_", " ")|title }}
             {% endif %}
           </div>
-          <div class="s">{{ entry.account_id }} &middot; {{ entry.audit_ref }}</div>
+          <div class="s mono">{{ entry.account_id }} · {{ entry.audit_ref }}</div>
         </div>
       </div>
       {% endfor %}
       <div class="panel-foot">
         {% if verification.ok %}
-          All {{ audit_total }} entries verified from genesis. No entry edited, deleted, or reordered.
+          {{ audit_total }} entries verified from genesis.
         {% else %}
           Chain broken at entry {{ verification.first_bad_index }}: {{ verification.reason }}
         {% endif %}
@@ -626,26 +824,30 @@
     </div>
 
     <div>
-      <div class="panel-card" style="margin-bottom:20px">
-        <h3>Do-not-call list</h3>
-        <p class="sub">Rule 3 checks this before every dial. Rule 5 adds numbers the moment someone opts out.</p>
+      <div class="panel" style="margin-bottom:var(--space-xl)">
+        <div class="panel-head">
+          <h3 class="heading">Do-not-call list</h3>
+          <p>Checked before every dial. Updated on opt-out.</p>
+        </div>
         {% for entry in suppressed %}
-        <div class="sup-item">
-          <div class="icon-wrap"><span class="icon" style="font-size:18px">phone_disabled</span></div>
+        <div class="ledger-row">
+          <span class="ledger-mark warn"></span>
           <div>
-            <div class="t num" style="font-variant-numeric:tabular-nums">{{ entry.to_masked_dict().phone_e164 }}</div>
-            <div class="s">{{ entry.reason|replace("_", " ")|title }} &middot; since {{ entry.added_at[:10] }}</div>
+            <div class="t mono">{{ entry.to_masked_dict().phone_e164 }}</div>
+            <div class="s">{{ entry.reason|replace("_", " ")|title }} · {{ entry.added_at[:10] }}</div>
           </div>
         </div>
         {% endfor %}
       </div>
 
-      <div class="panel-card">
-        <h3>Active policy</h3>
-        <p class="sub">{{ policy.policy_id }} v{{ policy.policy_version }} &middot; {{ policy.window_label }} local window</p>
+      <div class="panel">
+        <div class="panel-head">
+          <h3 class="heading">Policy</h3>
+          <p>{{ policy.policy_id }} v{{ policy.policy_version }} · {{ policy.window_label }}</p>
+        </div>
         {% for rule in policy.rules %}
-        <div class="policy-item">
-          <div class="t">{{ rule.id }} — {{ rule.name|replace("_", " ")|title }}</div>
+        <div class="policy-row">
+          <div class="t">{{ rule.id }} · {{ rule.name|replace("_", " ")|title }}</div>
           <div class="s">{{ rule.requirement }}</div>
         </div>
         {% endfor %}
@@ -655,9 +857,7 @@
 </section>
 
 <footer>
-  <div class="wrap">
-    {{ policy.authorities|join(" · ") }}
-  </div>
+  <div class="wrap">{{ policy.authorities|join(" · ") }}</div>
 </footer>
 
 </body>
