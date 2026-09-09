@@ -4,6 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cleared to Call</title>
+<link rel="icon" href="/static/logo.jpg" type="image/jpeg" />
+<link rel="apple-touch-icon" href="/static/logo.jpg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet" />
@@ -40,7 +42,20 @@
     --space-2xl: 40px;
     --space-3xl: 64px;
     --max: 1080px;
+    --logo-size-nav: 30px;
+    --logo-size-hero: 52px;
+    --stroke: 1.5px;
   }
+
+  /* Logo — monochrome line art on warm canvas. multiply hides JPG white fill. */
+  .logo {
+    display: block;
+    height: var(--logo-size-nav);
+    width: auto;
+    mix-blend-mode: multiply;
+  }
+  .logo.hero-size { height: var(--logo-size-hero); }
+  .logo.footer-size { height: 22px; opacity: 0.55; }
 
   *, *::before, *::after { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -89,14 +104,36 @@
   }
   .nav .inner {
     display: flex; align-items: center; gap: var(--space-lg);
-    min-height: 52px; flex-wrap: wrap;
+    min-height: 56px; flex-wrap: wrap;
   }
-  .mark {
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .brand:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 4px;
+    border-radius: var(--radius-sm);
+  }
+  .brand-wordmark {
     font-family: var(--font-display);
     font-size: 14px;
     font-weight: 400;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.0125em;
     color: var(--ink);
+    line-height: 1;
+  }
+  .brand-tagline {
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 3px;
   }
   .spacer { flex: 1; }
   .tag {
@@ -114,7 +151,29 @@
   .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
   /* Hero -------------------------------------------------------------- */
-  .hero { padding: var(--space-3xl) 0 var(--space-2xl); }
+  .hero {
+    padding: var(--space-3xl) 0 var(--space-2xl);
+    position: relative;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    right: max(0px, calc(50% - 620px));
+    width: 280px;
+    height: 280px;
+    background: url("/static/logo.jpg") center / contain no-repeat;
+    mix-blend-mode: multiply;
+    opacity: 0.045;
+    pointer-events: none;
+  }
+  .hero-intro {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+  }
+  .hero-intro .logo { height: var(--logo-size-hero); }
   .hero-grid {
     display: grid;
     grid-template-columns: 1.15fr 0.85fr;
@@ -295,10 +354,10 @@
   .decision {
     border-bottom: 1px solid var(--hairline);
     display: grid;
-    grid-template-columns: 3px 1fr;
+    grid-template-columns: 4px 1fr;
   }
   .decision:last-child { border-bottom: 0; }
-  .decision-bar { background: var(--hairline); }
+  .decision-bar { background: var(--hairline); width: 4px; }
   .decision.refused .decision-bar { background: var(--red); }
   .decision.cleared .decision-bar { background: var(--green); }
   .decision.optout .decision-bar { background: var(--amber); }
@@ -495,6 +554,21 @@
     font-size: 12px;
     color: var(--muted);
   }
+  .footer-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+  }
+  .footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: var(--space-lg);
+    border-right: 1px solid var(--hairline);
+    margin-right: var(--space-xs);
+  }
+  .footer-brand .brand-wordmark { font-size: 13px; }
 
   @media (max-width: 900px) {
     .hero-grid { grid-template-columns: 1fr; }
@@ -514,6 +588,8 @@
     .stat:nth-child(odd) { border-right: 1px solid var(--hairline); }
     .stat:last-child { border-bottom: 0; }
     .presets { grid-template-columns: 1fr; }
+    .footer-brand { border-right: 0; padding-right: 0; margin-right: 0; }
+    .hero::before { display: none; }
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -534,7 +610,13 @@
 
 <nav class="nav">
   <div class="wrap inner">
-    <span class="mark">Cleared to Call</span>
+    <a class="brand" href="/">
+      <img class="logo" src="/static/logo.jpg" alt="" width="30" height="30" />
+      <span>
+        <span class="brand-wordmark">Cleared to Call</span>
+        <span class="brand-tagline">Compliance gate</span>
+      </span>
+    </a>
     <div class="spacer"></div>
     <span class="tag"><span class="dot"></span>{{ policy.jurisdiction }}</span>
     {% if verification.ok %}
@@ -548,7 +630,10 @@
 <header class="wrap hero">
   <div class="hero-grid">
     <div>
-      <p class="eyebrow">Compliance gate for outbound collections</p>
+      <div class="hero-intro">
+        <img class="logo hero-size" src="/static/logo.jpg" alt="" width="52" height="52" />
+        <p class="eyebrow" style="margin:0">Compliance gate for outbound collections</p>
+      </div>
       <h1 class="display">Lawful call, or provably refused.</h1>
       <p class="lede">
         Five US federal rules run before every dial — call window, consent, suppression,
@@ -857,7 +942,13 @@
 </section>
 
 <footer>
-  <div class="wrap">{{ policy.authorities|join(" · ") }}</div>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="logo footer-size" src="/static/logo.jpg" alt="" width="22" height="22" />
+      <span class="brand-wordmark">Cleared to Call</span>
+    </div>
+    <span>{{ policy.authorities|join(" · ") }}</span>
+  </div>
 </footer>
 
 </body>
