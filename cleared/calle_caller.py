@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -69,6 +70,19 @@ def resolve_server_url(base_url: str, channel: str, server_url: str | None) -> s
 def token_cache_path(cache_root: str, server_url: str) -> Path:
     digest = hashlib.md5(server_url.encode("utf-8")).hexdigest()
     return Path(os.path.expanduser(cache_root)) / digest / "token.json"
+
+
+def resolve_calle_command(command: str | None = None) -> str:
+    """Find the CALL-E CLI. On Windows, bare `calle` is not enough for subprocess."""
+    if command:
+        return command
+    resolved = shutil.which("calle")
+    if resolved:
+        return resolved
+    raise CallerError(
+        "the CALL-E CLI is not on PATH. Install it with `npm install -g @call-e/cli` "
+        "or pass --calle-command."
+    )
 
 
 def read_access_token(cache_root: str, server_url: str) -> str:
@@ -119,8 +133,29 @@ def check_auth(calle_command: str, base_url: str, channel: str, server_url: str)
         return {}
 
 
+def normalize_tool_result(result: Any) -> Any:
+    """Turn a fastmcp CallToolResult into a plain dict the extractors can read."""
+    if result is None:
+        return None
+    structured = getattr(result, "structured_content", None)
+    if isinstance(structured, dict) and structured:
+        return structured
+    data = getattr(result, "data", None)
+    if data is not None and hasattr(data, "model_dump"):
+        return data.model_dump()
+    if hasattr(result, "model_dump"):
+        dumped = result.model_dump()
+        if isinstance(dumped, dict):
+            nested = dumped.get("structured_content")
+            if isinstance(nested, dict) and nested:
+                return nested
+            return dumped
+    return result
+
+
 def _payloads(value: Any) -> list[dict[str, Any]]:
     """Every dict inside a nested MCP response, so key lookups can be shallow."""
+    value = normalize_tool_result(value)
     found: list[dict[str, Any]] = []
     stack: list[Any] = [value]
     while stack:
@@ -130,6 +165,8 @@ def _payloads(value: Any) -> list[dict[str, Any]]:
             stack.extend(current.values())
         elif isinstance(current, (list, tuple)):
             stack.extend(current)
+        elif hasattr(current, "model_dump"):
+            stack.append(current.model_dump())
     return found
 
 
@@ -139,6 +176,35 @@ def first_value(value: Any, keys: tuple[str, ...]) -> Any:
             if key in payload and payload[key] not in (None, ""):
                 return payload[key]
     return None
+
+
+def extract_plan_feedback(plan: Any) -> dict[str, Any]:
+    """Human-readable block reasons from a `plan_call` response."""
+    summary = first_value(plan, ("confirm_summary",))
+    questions = first_value(plan, ("clarifying_questions",)) or []
+    if not isinstance(questions, list):
+        questions = []
+    options: list[str] = []
+    for payload in _payloads(plan):
+        raw_questions = payload.get("questions")
+        if not isinstance(raw_questions, list):
+            continue
+        for item in raw_questions:
+            if not isinstance(item, dict):
+                continue
+            for option in item.get("options") or []:
+                if isinstance(option, dict) and option.get("label"):
+                    options.append(str(option["label"]))
+    block_reason = None
+    if isinstance(summary, str) and summary.strip():
+        block_reason = summary.strip()
+    elif questions:
+        block_reason = str(questions[0])
+    return {
+        "block_reason": block_reason,
+        "clarifying_questions": [str(item) for item in questions],
+        "supported_region_language": options,
+    }
 
 
 def extract_status(value: Any) -> str | None:
@@ -277,7 +343,7 @@ class CalleCaller:
         self.base_url = self.base_url or DEFAULT_BASE_URL
         self.channel = self.channel or DEFAULT_CHANNEL
         self.cache_root = self.cache_root or DEFAULT_CACHE_ROOT
-        self.calle_command = self.calle_command or "calle"
+        self.calle_command = resolve_calle_command(self.calle_command)
         self.server_url = resolve_server_url(self.base_url, self.channel, self.server_url)
 
     def token(self) -> str:
@@ -326,6 +392,7 @@ class CalleCaller:
                 build_call_metadata(account, self.audit_ref, policy),
             )
         plan_targets_only(plan, account.phone_e164)
+        feedback = extract_plan_feedback(plan)
         return {
             "account_id": account.account_id,
             "phone_masked": account.masked_phone,
@@ -333,6 +400,7 @@ class CalleCaller:
             "ready_to_run": bool(first_value(plan, ("ready_to_run",))),
             "plan_id": first_value(plan, ("plan_id",)),
             "has_confirm_token": isinstance(first_value(plan, ("confirm_token",)), str),
+            **feedback,
         }
 
     def _client(self) -> Any:
@@ -407,10 +475,10 @@ class CalleCaller:
         result = await client.call_tool(
             name=name, arguments=arguments, meta=meta or None, raise_on_error=False
         )
-        payload = result.model_dump() if hasattr(result, "model_dump") else result
         if getattr(result, "is_error", False):
+            payload = normalize_tool_result(result)
             raise CallerError(f"{name} failed: {json.dumps(payload, default=str)[:400]}")
-        return payload
+        return normalize_tool_result(result)
 
     async def _poll(
         self, client: Any, run_id: str, meta: dict[str, Any], account: Account | None

@@ -252,11 +252,16 @@ def command_preflight(args: argparse.Namespace) -> int:
     )
     print(f"\nPlanning a call to {account.masked_phone} in region {args.region} (no call is placed)...")
     plan = caller.plan_only(account, script)
-    print(json.dumps(plan, indent=2))
+    print(json.dumps(plan, indent=2, ensure_ascii=False))
     if plan["ready_to_run"]:
         print("\nCALL-E accepted the plan. This account can be dialled with --execute.")
         return 0
     print("\nCALL-E did not return ready_to_run. Do not spend a call on this yet.")
+    if plan.get("block_reason"):
+        print(f"\nReason: {plan['block_reason']}")
+    if plan.get("supported_region_language"):
+        labels = ", ".join(plan["supported_region_language"])
+        print(f"Supported on this account: {labels}")
     return 2
 
 

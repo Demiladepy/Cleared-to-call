@@ -12,11 +12,14 @@ import pytest
 from cleared.callers import CallerError, build_call_metadata, build_plan_arguments
 from cleared.calle_caller import (
     extract_outcome,
+    extract_plan_feedback,
     extract_promise_date,
     extract_status,
     extract_summary,
     extract_transcript,
+    normalize_tool_result,
     plan_targets_only,
+    resolve_calle_command,
     resolve_server_url,
     token_cache_path,
 )
@@ -66,6 +69,41 @@ def test_a_plan_with_an_extra_number_anywhere_is_refused():
 
 def test_a_plan_with_no_numbers_is_not_blocked():
     plan_targets_only({"structuredContent": {"ready_to_run": True}}, "+15550101234")
+
+
+def test_plan_feedback_surfaces_an_unsupported_destination():
+    plan = {
+        "ready_to_run": False,
+        "confirm_summary": "Nigeria is not supported.",
+        "clarifying_questions": ["Use a supported region instead."],
+        "questions": [
+            {
+                "options": [
+                    {"label": "US — English", "value": "US|English"},
+                    {"label": "IN — English", "value": "IN|English"},
+                ]
+            }
+        ],
+    }
+    feedback = extract_plan_feedback(plan)
+    assert feedback["block_reason"] == "Nigeria is not supported."
+    assert feedback["supported_region_language"] == ["US — English", "IN — English"]
+
+
+def test_normalize_tool_result_prefers_structured_content():
+    class Stub:
+        structured_content = {"ready_to_run": True, "run_id": "r1"}
+        is_error = False
+
+    assert normalize_tool_result(Stub()) == {"ready_to_run": True, "run_id": "r1"}
+
+
+def test_resolve_calle_command_finds_the_cli_on_path(monkeypatch):
+    monkeypatch.setattr(
+        "cleared.calle_caller.shutil.which",
+        lambda name: "C:\\npm\\calle.cmd" if name == "calle" else None,
+    )
+    assert resolve_calle_command(None) == "C:\\npm\\calle.cmd"
 
 
 # Response parsing

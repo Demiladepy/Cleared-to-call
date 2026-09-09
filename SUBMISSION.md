@@ -16,25 +16,24 @@ Everything needed to ship, plus the four things only you can supply.
 
 1. **CALL-E account + CLI login.** `npm install -g @call-e/cli && calle auth login`.
    The live caller reads the CLI token cache; there is no place to paste a key.
-2. **A phone you own, for two or three real calls.** Nigeria works: CALL-E
-   added `NG` as a recipient region (see `apps/python/sentinelcall-anc-followup`
-   in their repo, which targets Nigeria). Your number is already in the
-   gitignored `fixtures/demo-live.json` as `A-9001`, timezone `Africa/Lagos`.
-   Confirm it dials before spending a credit:
+2. **A phone you own in a region CALL-E can dial.** Run preflight first — it
+   spends no credits:
 
    ```bash
-   python -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region NG
+   python -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region US
    ```
 
-   That runs the gate and `plan_call` only. No phone rings, no credit is spent.
-   Rule 1 will refuse outside 08:00–21:00 Lagos, which is 07:00–20:00 UTC.
-3. **The jurisdiction is US federal (TCPA / FDCPA / Reg F)** and the test number
-   is Nigerian, because that is the phone available. Say so in the video rather
-   than glossing it: the gate reads whichever IANA timezone is on the account
-   record, so the screen shows `Africa/Lagos` and the window check runs against
-   Lagos local time. That demonstrates rule 1 better than a US number would.
-   If the real target market is not the US, rule 1's window and rule 2's consent
-   basis both change and `cleared/policy.json` needs replacing.
+   On the current `openagent_oauth` channel, supported combinations are **US,
+   SG, AU, and IN — all English**. A Nigerian `+234` destination is recognized
+   but blocked (`ready_to_run: false`) on every region we tested. To place a
+   live call you need a number in a supported country (for example a US E.164
+   on account `A-9001` with `--region US`, or an Indian number with
+   `--region IN`). Preflight prints the exact block reason when it fails.
+3. **The jurisdiction is US federal (TCPA / FDCPA / Reg F).** The test number's
+   country and the account's IANA timezone can differ — say so in the video.
+   The gate reads `account.timezone` for rule 1, not the area code. If the real
+   target market is not the US, rule 1's window and rule 2's consent basis both
+   change and `cleared/policy.json` needs replacing.
 4. **Your deadline**, which decides how much of the video is re-shot versus
    taken in one pass.
 
