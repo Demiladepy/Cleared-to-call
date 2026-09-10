@@ -271,6 +271,74 @@ def command_verify(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def add_calle_connection_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--region", default="US", help="Two-letter ISO country code for CALL-E.")
+    parser.add_argument("--language", default="English")
+    parser.add_argument("--base-url", default=None)
+    parser.add_argument("--channel", default=None)
+    parser.add_argument("--server-url", default=None)
+    parser.add_argument("--cache-root", default=None)
+    parser.add_argument("--calle-command", default=None)
+
+
+def command_capture_run(args: argparse.Namespace) -> int:
+    """Fetch a `get_call_run` payload and save a redacted fixture for B1 tests."""
+    from .calle_caller import CalleCaller, sanitize_call_run
+
+    caller = CalleCaller(
+        region=args.region,
+        language=args.language,
+        base_url=args.base_url,
+        channel=args.channel,
+        server_url=args.server_url,
+        cache_root=args.cache_root,
+        calle_command=args.calle_command,
+    )
+    payload = caller.fetch_run(args.run_id)
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps(sanitize_call_run(payload), indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Saved redacted run payload to {output}")
+    return 0
+
+
+def command_parse_run(args: argparse.Namespace) -> int:
+    """Run the live extractors against a saved `get_call_run` payload."""
+    from .calle_caller import (
+        extract_status,
+        extract_summary,
+        extract_transcript,
+        resolve_call_outcome,
+    )
+    from .revocation import scan_transcript
+
+    payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    status = extract_status(payload)
+    summary = extract_summary(payload)
+    transcript = extract_transcript(payload)
+    outcome, promise_date, outcome_source = resolve_call_outcome(
+        payload, summary, transcript, status
+    )
+    policy = load_policy(args.policy)
+    revocation = scan_transcript(transcript, policy)
+    report = {
+        "status": status,
+        "summary": summary,
+        "outcome": outcome,
+        "promise_date": promise_date,
+        "outcome_source": outcome_source,
+        "transcript_speakers": [turn.speaker for turn in transcript],
+        "transcript_turns": len(transcript),
+        "opt_out_detected": revocation is not None,
+        "matched_phrase": revocation.matched_phrase if revocation else None,
+    }
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    return 0
+
+
 def command_policy(args: argparse.Namespace) -> int:
     policy = load_policy(args.policy)
     print(f"{policy.policy_id} v{policy.policy_version} ({policy.jurisdiction})")
@@ -358,14 +426,33 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_common_paths(preflight_parser)
     preflight_parser.add_argument("--account-id", required=True)
-    preflight_parser.add_argument("--region", default="US", help="Two-letter ISO country code.")
-    preflight_parser.add_argument("--language", default="English")
-    preflight_parser.add_argument("--base-url", default=None)
-    preflight_parser.add_argument("--channel", default=None)
-    preflight_parser.add_argument("--server-url", default=None)
-    preflight_parser.add_argument("--cache-root", default=None)
-    preflight_parser.add_argument("--calle-command", default=None)
+    add_calle_connection_args(preflight_parser)
     preflight_parser.set_defaults(handler=command_preflight)
+
+    capture_parser = subparsers.add_parser(
+        "capture-run",
+        help="Fetch get_call_run and save a redacted JSON fixture. Spends no credits.",
+    )
+    capture_parser.add_argument("--run-id", required=True)
+    capture_parser.add_argument(
+        "--output",
+        default=str(ROOT / "tests" / "data" / "call_run_sample.json"),
+        help="Where to write the sanitized payload.",
+    )
+    add_calle_connection_args(capture_parser)
+    capture_parser.set_defaults(handler=command_capture_run)
+
+    parse_parser = subparsers.add_parser(
+        "parse-run",
+        help="Run extractors against a saved get_call_run payload.",
+    )
+    parse_parser.add_argument(
+        "--file",
+        default=str(ROOT / "tests" / "data" / "call_run_sample.json"),
+        help="Saved get_call_run JSON to parse.",
+    )
+    parse_parser.add_argument("--policy", default=None)
+    parse_parser.set_defaults(handler=command_parse_run)
 
     verify_parser = subparsers.add_parser("verify", help="Verify the audit hash chain.")
     verify_parser.add_argument("--audit", default=str(DEFAULT_RUNTIME / "audit.jsonl"))

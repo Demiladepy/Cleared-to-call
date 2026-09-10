@@ -38,54 +38,38 @@ skill installed, and the whole loop runs in dry run with no credentials.
 
 ### B1 — Verify live response parsing against a real call — **blocking**
 
-**Where:** `cleared/calle_caller.py:197` `extract_transcript`, `:213`
-`extract_outcome`, `:228` `extract_promise_date`
+**Where:** `cleared/calle_caller.py` extractors, `tests/data/call_run_sample.json`
 
-**Problem.** These read the outcome out of free text with regexes over
-`post_summary` and the agent's turns. They were written against the shapes
-documented in `apps/python/batch-runner`, and have never seen a real
-`get_call_run` payload. If CALL-E returns a different shape, a real
-`promise_to_pay` silently degrades to `refusal`, and the demo's structured
-result is wrong on camera.
+**Done locally (synthetic).** MCP response normalization, structured-result
+preference, a synthetic fixture, `parse-run` / `capture-run` CLI commands, and
+extractor tests are in place. See `LIVE-TEST.md`.
 
-**Do.**
+**Still needs a supported phone number.** Nigerian `+234` destinations are
+recognized but not dialable on `openagent_oauth`. Preflight proves the gate;
+`plan_call` returns `ready_to_run: false` for NG.
 
-1. Place one real call (`cleared.cli run --execute --account-id A-9001 --region NG`).
-2. Save the raw `get_call_run` response to `tests/data/call_run_sample.json`,
-   with the phone number masked and any token stripped.
-3. Add tests that feed that payload through `extract_*` and assert the outcome,
-   the promise date, and the speaker labels on the transcript.
-4. Fix the extractors against reality.
+**Do when a US/IN/SG/AU number is available.**
+
+1. Place one real call (`cleared.cli run --execute --account-id A-9001 --region US`).
+2. `cleared.cli capture-run --run-id <id>` overwrites `tests/data/call_run_sample.json`.
+3. Fix extractors if `parse-run` disagrees with what happened on the call.
 
 **Acceptance.** A test proves the real payload shape parses correctly, and
 `normalize_speaker` maps CALL-E's actual speaker labels onto `agent` /
 `recipient`. That second one matters most: `scan_transcript` only reads
 recipient turns, so a mislabelled speaker means a **missed opt-out**.
 
-### B2 — Replace outcome scraping with a declared result schema — **high value**
+### B2 — Prefer structured results over prose scraping — **partially done**
 
-**Where:** `cleared/callers.py` `build_plan_arguments`, `cleared/script.py`
-`CALL_GOAL_TEMPLATE`
+**Where:** `cleared/calle_caller.py` `resolve_call_outcome`, `CallReport.raw`
 
-**Problem.** We ask the agent to say the outcome in prose and then pattern-match
-it. CALL-E supports a `result_schema` on the call, which makes the outcome a
-returned field instead of a guess.
+**Done.** When `get_call_run` includes `structured_result`, extractors use it
+and set `outcome_source: structured`. Otherwise they infer from prose
+(`outcome_source: inferred`). Rule 5 still re-scans the transcript independently.
 
-**Constraints** (from `apps/python/leash/README.md` in the CALL-E repo, verified
-live by that author): the schema subset is flat scalars only. `oneOf` is
-rejected at create time, and so is a nullable type like `["string","null"]`.
-Use string enums with an explicit "no clear answer" member rather than nulls.
-Anything that survives create but fails extraction nulls the **entire** result
-object, so keep nothing load-bearing nested.
-
-**Do.** Declare `outcome` (enum: the six values in `cleared/schema.py:OUTCOMES`)
-and `promise_date` (string, `""` when absent). Prefer the returned field, keep
-the regex path as a fallback, and record which one was used.
-
-**Acceptance.** `plan_call` accepts the schema, and a live call returns an
-outcome that was never inferred from prose. Rule 5 stays independent: the
-transcript re-scan in `cleared/runner.py:process_account` must keep running even
-when the schema reports no opt-out.
+**Not on MCP.** `plan_call` rejects `result_schema` as an unexpected keyword on
+the `openagent_oauth` channel. Declaring a schema at plan time is REST-only; this
+path reads structured fields when the provider returns them on `get_call_run`.
 
 ### B3 — Duplicate-call prevention — **DONE**
 

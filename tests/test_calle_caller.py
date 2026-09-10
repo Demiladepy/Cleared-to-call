@@ -7,6 +7,8 @@ number.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from cleared.callers import CallerError, build_call_metadata, build_plan_arguments
@@ -15,12 +17,15 @@ from cleared.calle_caller import (
     extract_plan_feedback,
     extract_promise_date,
     extract_status,
+    extract_structured_result,
     extract_summary,
     extract_transcript,
     normalize_tool_result,
     plan_targets_only,
+    resolve_call_outcome,
     resolve_calle_command,
     resolve_server_url,
+    sanitize_call_run,
     token_cache_path,
 )
 from cleared.revocation import scan_transcript
@@ -204,6 +209,52 @@ def test_a_promise_date_is_extracted_only_for_a_promise():
     summary = "Outcome: promise_to_pay on 2026-09-05"
     assert extract_promise_date(summary, ()) == "2026-09-05"
     assert extract_promise_date("Outcome: dispute", ()) is None
+
+
+def test_structured_result_is_preferred_over_prose():
+    payload = {
+        "structured_result": {"outcome": "promise_to_pay", "promise_date": "2026-09-12"},
+        "post_summary": "Outcome: dispute",
+    }
+    transcript = ()
+    outcome, promise_date, source = resolve_call_outcome(
+        payload, extract_summary(payload), transcript, "COMPLETED"
+    )
+    assert outcome == "promise_to_pay"
+    assert promise_date == "2026-09-12"
+    assert source == "structured"
+
+
+def test_structured_unknown_outcomes_fall_back_to_prose():
+    payload = {
+        "structured_result": {"outcome": "unknown", "promise_date": ""},
+        "post_summary": "Outcome: refusal",
+    }
+    outcome, _, source = resolve_call_outcome(
+        payload, extract_summary(payload), (), "COMPLETED"
+    )
+    assert outcome == "refusal"
+    assert source == "inferred"
+
+
+def test_extract_structured_result_reads_nested_shapes():
+    payload = {"result": {"outcome": "no_answer", "promise_date": ""}}
+    assert extract_structured_result(payload) == {
+        "outcome": "no_answer",
+        "promise_date": "",
+    }
+
+
+def test_sanitize_call_run_masks_numbers_and_redacts_tokens():
+    payload = {
+        "to_phone": "+15550101234",
+        "confirm_token": "secret-token",
+        "transcript": [{"role": "USER", "text": "Call +15550109999 back"}],
+    }
+    sanitized = sanitize_call_run(payload)
+    assert "+15550101234" not in json.dumps(sanitized)
+    assert "+15550109999" not in json.dumps(sanitized)
+    assert sanitized["confirm_token"] == "<redacted>"
 
 
 # The call task handed to CALL-E

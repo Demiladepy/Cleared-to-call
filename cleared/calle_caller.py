@@ -41,7 +41,7 @@ from .callers import (
     build_plan_arguments,
 )
 from .policy import Policy, default_policy
-from .schema import Account, CallReport, TranscriptTurn
+from .schema import OUTCOMES, Account, CallReport, TranscriptTurn, mask_phone
 from .script import CallScript
 
 INTEGRATION_HEADER = "cleared-to-call/0.1.0"
@@ -58,6 +58,10 @@ OUTCOME_PATTERNS = (
     ("dispute", re.compile(r"\bdisputed?\b", re.IGNORECASE)),
     ("refusal", re.compile(r"\brefusal\b|\brefused\b", re.IGNORECASE)),
     ("no_answer", re.compile(r"\bno[\s_-]?answer\b", re.IGNORECASE)),
+)
+REPORT_OUTCOMES = frozenset(item for item in OUTCOMES if item != "not_called")
+SECRET_KEYS = frozenset(
+    {"access_token", "confirm_token", "token", "authorization", "refresh_token"}
 )
 
 
@@ -276,6 +280,44 @@ def extract_transcript(value: Any) -> tuple[TranscriptTurn, ...]:
     return ()
 
 
+def extract_structured_result(value: Any) -> dict[str, str] | None:
+    """Read a flat outcome object when CALL-E returns one on `get_call_run`."""
+    for payload in _payloads(value):
+        for key in ("structured_result", "structuredResult", "result", "call_result"):
+            raw = payload.get(key)
+            if not isinstance(raw, dict):
+                continue
+            outcome = raw.get("outcome")
+            if not isinstance(outcome, str) or not outcome.strip():
+                continue
+            promise_date = raw.get("promise_date", "")
+            return {
+                "outcome": outcome.strip(),
+                "promise_date": str(promise_date).strip() if promise_date is not None else "",
+            }
+    return None
+
+
+def resolve_call_outcome(
+    value: Any,
+    summary: str | None,
+    transcript: tuple[TranscriptTurn, ...],
+    status: str | None,
+) -> tuple[str, str | None, str]:
+    """Prefer structured results; fall back to prose and provider status."""
+    structured = extract_structured_result(value)
+    if structured:
+        outcome = structured["outcome"]
+        promise_date = structured["promise_date"] or None
+        if outcome in REPORT_OUTCOMES:
+            if outcome == "promise_to_pay" and not promise_date:
+                promise_date = extract_promise_date(summary, transcript)
+            return outcome, promise_date, "structured"
+    outcome = extract_outcome(summary, transcript, status)
+    promise_date = extract_promise_date(summary, transcript) if outcome == "promise_to_pay" else None
+    return outcome, promise_date, "inferred"
+
+
 def extract_outcome(summary: str | None, transcript: tuple[TranscriptTurn, ...], status: str | None) -> str:
     """Read the outcome the agent reported, falling back to the provider status."""
     haystacks = [summary or ""]
@@ -297,6 +339,35 @@ def extract_promise_date(summary: str | None, transcript: tuple[TranscriptTurn, 
         if match:
             return match.group(1)
     return None
+
+
+def _redact_secrets(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: "<redacted>" if key.lower() in SECRET_KEYS else _redact_secrets(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_secrets(item) for item in value]
+    return value
+
+
+def sanitize_call_run(payload: Any) -> dict[str, Any]:
+    """Mask phone numbers and strip tokens before saving a provider payload."""
+    normalized = normalize_tool_result(payload)
+    if not isinstance(normalized, dict):
+        normalized = {"payload": normalized}
+    redacted = _redact_secrets(normalized)
+    blob = json.dumps(redacted, default=str)
+    for number in sorted(set(E164_IN_TEXT.findall(blob)), key=len, reverse=True):
+        blob = blob.replace(number, mask_phone(number))
+    document = json.loads(blob)
+    if isinstance(document, dict):
+        document.setdefault(
+            "_note",
+            "Captured from get_call_run. Phone numbers masked; secrets redacted.",
+        )
+    return document
 
 
 def plan_targets_only(plan: Any, phone: str) -> None:
@@ -366,6 +437,14 @@ class CalleCaller:
         by dialling the person a second time.
         """
         return asyncio.run(self._recover(run_id))
+
+    def fetch_run(self, run_id: str) -> Any:
+        """Fetch a raw `get_call_run` payload for inspection or fixture capture."""
+        return asyncio.run(self._fetch_run(run_id))
+
+    async def _fetch_run(self, run_id: str) -> Any:
+        async with self._client() as client:
+            return await self._call_tool(client, "get_call_run", {"run_id": run_id}, {})
 
     async def _recover(self, run_id: str) -> CallReport:
         async with self._client() as client:
@@ -461,14 +540,16 @@ class CalleCaller:
         status = extract_status(final)
         summary = extract_summary(final)
         transcript = extract_transcript(final)
-        outcome = extract_outcome(summary, transcript, status)
+        outcome, promise_date, outcome_source = resolve_call_outcome(
+            final, summary, transcript, status
+        )
         return CallReport(
             outcome=outcome,
             transcript=transcript,
-            promise_date=extract_promise_date(summary, transcript) if outcome == "promise_to_pay" else None,
+            promise_date=promise_date,
             provider_status=status,
             provider_run_id=run_id,
-            raw={"summary": summary, "status": status},
+            raw={"summary": summary, "status": status, "outcome_source": outcome_source},
         )
 
     async def _call_tool(self, client: Any, name: str, arguments: dict[str, Any], meta: dict[str, Any]) -> Any:
