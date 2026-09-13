@@ -19,6 +19,7 @@ from pathlib import Path
 import pytest
 
 from cleared.calle_caller import (
+    E164_IN_TEXT,
     extract_outcome,
     extract_promise_date,
     extract_status,
@@ -74,11 +75,33 @@ def test_a_call_that_never_connected_yields_no_promise_date(declined):
     assert extract_promise_date(extract_summary(declined), ()) is None
 
 
-def test_the_committed_declined_payload_carries_no_real_number(declined):
-    assert "REDACTED" not in json.dumps(declined)
+def test_the_committed_declined_payload_carries_no_dialable_number(declined):
+    """Stated as a property, never as a literal.
+
+    An earlier version of this test hardcoded the operator's real number so it
+    could assert its absence, which put that number in a committed file and in
+    the history -- the exact thing ground rule 4 forbids, in the test written to
+    enforce it. `mask_phone` leaves at most the last four digits, so any run of
+    eight or more consecutive digits after a `+` is an unmasked number.
+    """
+    assert E164_IN_TEXT.search(json.dumps(declined)) is None
 
 
 def test_the_committed_declined_payload_carries_no_credentials(declined):
     blob = json.dumps(declined)
     for key in ("confirm_token", "access_token", "authorization"):
         assert f'"{key}": "<redacted>"' in blob or key not in blob
+
+
+# Applies to every payload ever committed here, not just the ones above
+
+
+def test_no_committed_payload_contains_a_dialable_number():
+    """A capture is committed by a human running --capture-payload. Guard the directory."""
+    for path in sorted(DATA.glob("*.json")):
+        assert E164_IN_TEXT.search(path.read_text(encoding="utf-8")) is None, path.name
+
+
+def test_no_committed_payload_contains_a_bearer_token():
+    for path in sorted(DATA.glob("*.json")):
+        assert "Bearer " not in path.read_text(encoding="utf-8"), path.name
