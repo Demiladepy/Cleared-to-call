@@ -22,11 +22,13 @@ from cleared.calle_caller import (
     extract_transcript,
     normalize_tool_result,
     plan_targets_only,
+    first_value,
     resolve_call_outcome,
     resolve_calle_command,
     resolve_server_url,
     sanitize_call_run,
     token_cache_path,
+    normalize_tool_result,
 )
 from cleared.revocation import scan_transcript
 from cleared.schema import TranscriptTurn
@@ -193,7 +195,16 @@ def test_opt_out_wins_over_any_other_reported_outcome():
 def test_a_provider_status_is_used_when_the_agent_reported_nothing():
     assert extract_outcome(None, (), "NO_ANSWER") == "no_answer"
     assert extract_outcome(None, (), "VOICEMAIL") == "no_answer"
-    assert extract_outcome(None, (), "DECLINED") == "refusal"
+
+
+def test_no_provider_status_can_on_its_own_establish_a_refusal():
+    """A status says whether the call connected, not what was said on it.
+
+    DECLINED read as `refusal` until a real run returned DECLINED with zero
+    duration and no transcript. See tests/test_real_payloads.py.
+    """
+    for status in ("DECLINED", "BUSY", "FAILED", "CANCELED", "EXPIRED"):
+        assert extract_outcome(None, (), status) == "no_answer"
 
 
 def test_an_unparseable_completed_call_with_no_transcript_is_no_answer():
@@ -288,3 +299,94 @@ def test_provider_metadata_carries_only_a_masked_number(account, policy):
     assert payload["phone_masked"] == "+1******1234"
     assert payload["audit_ref"] == "aud_12345678"
     assert account.phone_e164 not in str(payload)
+
+
+# The shape fastmcp actually hands back (B1)
+#
+# fastmcp 3.x returns a `CallToolResult` object, not a dict, and it carries no
+# `model_dump`. Everything here walks dicts and lists, so against the real
+# object every extractor returned None and `plan_targets_only` saw no numbers at
+# all. These fakes mirror the real instance: attributes `structured_content`,
+# `content` (list of objects with `.text` holding JSON), `is_error`.
+
+
+class FakeTextContent:
+    def __init__(self, text):
+        self.type = "text"
+        self.text = text
+
+
+class FakeToolResult:
+    """Mirrors fastmcp.client.client.CallToolResult: a plain object, no model_dump."""
+
+    def __init__(self, structured_content=None, content=None, is_error=False):
+        self.structured_content = structured_content
+        self.content = content or []
+        self.is_error = is_error
+        self.meta = None
+
+
+def test_the_structured_content_of_a_tool_result_is_unwrapped():
+    result = FakeToolResult(structured_content={"plan_id": "p-1", "ready_to_run": True})
+    assert normalize_tool_result(result) == {"plan_id": "p-1", "ready_to_run": True}
+
+
+def test_a_tool_result_with_only_text_content_is_parsed_as_json():
+    result = FakeToolResult(content=[FakeTextContent('{"plan_id": "p-2", "ready_to_run": true}')])
+    assert normalize_tool_result(result) == {"plan_id": "p-2", "ready_to_run": True}
+
+
+def test_a_plain_dict_is_returned_unchanged():
+    assert normalize_tool_result({"plan_id": "p-3"}) == {"plan_id": "p-3"}
+
+
+def test_unparseable_text_content_does_not_crash_the_unwrap():
+    result = FakeToolResult(content=[FakeTextContent("not json at all")])
+    normalize_tool_result(result)
+
+
+def test_ready_to_run_is_readable_through_a_real_tool_result():
+    result = FakeToolResult(structured_content={"ready_to_run": True, "plan_id": "p-4"})
+    assert first_value(normalize_tool_result(result), ("ready_to_run",)) is True
+    assert first_value(normalize_tool_result(result), ("plan_id",)) == "p-4"
+
+
+def test_a_wrong_number_inside_a_real_tool_result_is_still_refused():
+    """The safety check must not pass vacuously just because the payload is an object."""
+    result = FakeToolResult(structured_content={"to_phones": ["+15550109999"]})
+    with pytest.raises(CallerError, match="other than the"):
+        plan_targets_only(normalize_tool_result(result), "+15550101234")
+
+
+# B2: what plan_call actually accepts
+#
+# The handoff called for declaring a result_schema on plan_call. The deployed
+# tool has no such parameter: it is rejected at create time with "Unexpected
+# keyword argument", which fails every live call. These names came from
+# introspecting the live tool, not from documentation.
+
+
+PLAN_CALL_PARAMETERS = frozenset(
+    {
+        "plan_id",
+        "to_phones",
+        "region",
+        "language",
+        "goal",
+        "scheduled_at",
+        "retry_confirmation_action",
+        "user_input",
+        "ttl_seconds",
+    }
+)
+
+
+def test_the_plan_payload_sends_only_parameters_plan_call_accepts(account, policy):
+    """An unknown key is not ignored, it fails the call. Never send a hopeful one."""
+    args = build_plan_arguments(account, render_script(account, policy))
+    assert set(args) <= PLAN_CALL_PARAMETERS, set(args) - PLAN_CALL_PARAMETERS
+
+
+def test_no_result_schema_is_sent(account, policy):
+    """Kept as a named regression: this exact key broke every live call."""
+    assert "result_schema" not in build_plan_arguments(account, render_script(account, policy))

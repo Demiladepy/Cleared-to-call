@@ -19,6 +19,11 @@ CALL-E recognizes Nigerian destinations but **does not dial them** on the
 `openagent_oauth` channel. Preflight returns `ready_to_run: false` with a block
 reason naming supported regions (US, SG, AU, IN — English).
 
+That was one account. On another, NG calls planned and dispatched, then came back
+`DECLINED` with zero duration: the carrier rejected the international caller ID and
+the phone never rang. See B1 in `TEAMMATE-TASKS.md`. Neither produced a connected
+call, so use a US, IN, SG or AU number for the validating call.
+
 The gate still works with `Africa/Lagos` timezone. Only the provider dial is blocked.
 
 ## Placing one live call

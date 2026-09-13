@@ -138,11 +138,18 @@ TERMINAL_STATUSES = {
     "NO_ANSWER",
     "VOICEMAIL",
 }
+# A provider status says whether the call connected, never what was said on it.
+# `refusal` is a claim that the recipient refused to arrange payment, and that
+# claim goes into an append-only record about a consumer, so it may only be made
+# from words someone actually spoke. Every status here therefore means the same
+# thing: nobody was reached. DECLINED mapped to `refusal` until a real run came
+# back DECLINED with duration_seconds 0, no transcript, and identical start and
+# end times -- a call that never rang, recorded as a consumer refusing to pay.
 STATUS_TO_OUTCOME = {
     "BUSY": "no_answer",
     "CANCELED": "no_answer",
     "CANCELLED": "no_answer",
-    "DECLINED": "refusal",
+    "DECLINED": "no_answer",
     "EXPIRED": "no_answer",
     "FAILED": "no_answer",
     "NO_ANSWER": "no_answer",
@@ -152,6 +159,19 @@ STATUS_TO_OUTCOME = {
 
 class CallerError(RuntimeError):
     """A call could not be placed or could not be followed to a terminal status."""
+
+
+# B2 could not be done as specified. The handoff called for declaring a
+# `result_schema` on plan_call so the outcome is a returned field instead of a
+# regex over the agent's prose. The deployed plan_call has no such parameter:
+# it rejects one at create time with "Unexpected keyword argument", which fails
+# the call outright. Introspecting the live tool gives its whole surface as
+# plan_id, to_phones, region, language, goal, scheduled_at,
+# retry_confirmation_action, user_input and ttl_seconds -- and nothing else.
+#
+# So the outcome still comes from the goal instruction plus the extractors, and
+# tests/test_calle_caller.py pins the accepted parameter set so a hopeful key
+# can never silently break every live call again.
 
 
 def build_plan_arguments(

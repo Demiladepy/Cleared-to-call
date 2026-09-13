@@ -49,6 +49,16 @@ E164_IN_TEXT = re.compile(r"\+\d{8,15}")
 PROMISE_DATE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
 INLINE_TURN = re.compile(r"\[\d{2}:\d{2}:\d{2}\]\s*([A-Za-z_]+)\s*:\s*")
 
+SECRET_KEY_HINTS = (
+    "token",
+    "secret",
+    "authorization",
+    "password",
+    "api_key",
+    "apikey",
+    "credential",
+)
+
 AGENT_LABELS = {"bot", "agent", "ai", "assistant", "system", "robot", "callee_bot"}
 RECIPIENT_LABELS = {"user", "customer", "human", "recipient", "consumer", "callee", "caller"}
 
@@ -60,9 +70,6 @@ OUTCOME_PATTERNS = (
     ("no_answer", re.compile(r"\bno[\s_-]?answer\b", re.IGNORECASE)),
 )
 REPORT_OUTCOMES = frozenset(item for item in OUTCOMES if item != "not_called")
-SECRET_KEYS = frozenset(
-    {"access_token", "confirm_token", "token", "authorization", "refresh_token"}
-)
 
 
 def resolve_server_url(base_url: str, channel: str, server_url: str | None) -> str:
@@ -138,15 +145,42 @@ def check_auth(calle_command: str, base_url: str, channel: str, server_url: str)
 
 
 def normalize_tool_result(result: Any) -> Any:
-    """Turn a fastmcp CallToolResult into a plain dict the extractors can read."""
-    if result is None:
-        return None
+    """The plain payload inside whatever the MCP client handed back.
+
+    fastmcp 3.x returns a `CallToolResult` object with no `model_dump`. Depending
+    on the tool, the payload arrives on `structured_content`, on `data`, or only
+    as JSON in `content[i].text`. Everything downstream walks dicts and lists, so
+    a result left as an object reads as empty: every extractor returns None,
+    `ready_to_run: true` reads as missing, and `plan_targets_only` sees no
+    numbers to object to. Unwrap once, here.
+
+    The text-content path is not optional. Without it, a server that answers only
+    in text makes a dialable plan look like `ready_to_run: false`, which is
+    indistinguishable from the destination being unsupported.
+    """
+    if result is None or isinstance(result, (dict, list, tuple)):
+        return result
+
     structured = getattr(result, "structured_content", None)
     if isinstance(structured, dict) and structured:
         return structured
+
     data = getattr(result, "data", None)
+    if isinstance(data, dict) and data:
+        return data
     if data is not None and hasattr(data, "model_dump"):
-        return data.model_dump()
+        dumped = data.model_dump()
+        if isinstance(dumped, dict) and dumped:
+            return dumped
+
+    for item in getattr(result, "content", None) or []:
+        text = getattr(item, "text", None)
+        if isinstance(text, str) and text.strip():
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                continue
+
     if hasattr(result, "model_dump"):
         dumped = result.model_dump()
         if isinstance(dumped, dict):
@@ -341,32 +375,51 @@ def extract_promise_date(summary: str | None, transcript: tuple[TranscriptTurn, 
     return None
 
 
-def _redact_secrets(value: Any) -> Any:
+def _names_a_credential(key: str) -> bool:
+    lowered = key.lower()
+    return any(hint in lowered for hint in SECRET_KEY_HINTS)
+
+
+def redact_payload(value: Any) -> Any:
+    """A copy of a provider payload that is safe to commit.
+
+    B1 needs the real `get_call_run` shape in the repository, but the response
+    carries the number that was dialled and the credential used to dial it.
+    Numbers are masked with the same `mask_phone` the audit log uses, so the
+    committed sample and the audit trail agree. Anything whose key names a
+    credential is dropped whole rather than masked: a partially masked token is
+    still a token. Keys are matched by substring, so `confirm_token` and
+    `refresh_token` are caught without being listed one by one.
+    """
     if isinstance(value, dict):
         return {
-            key: "<redacted>" if key.lower() in SECRET_KEYS else _redact_secrets(item)
+            key: "<redacted>" if _names_a_credential(str(key)) else redact_payload(item)
             for key, item in value.items()
         }
     if isinstance(value, list):
-        return [_redact_secrets(item) for item in value]
+        return [redact_payload(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_payload(item) for item in value)
+    if isinstance(value, str):
+        return E164_IN_TEXT.sub(lambda match: mask_phone(match.group(0)), value)
     return value
 
 
 def sanitize_call_run(payload: Any) -> dict[str, Any]:
-    """Mask phone numbers and strip tokens before saving a provider payload."""
+    """A provider payload ready to write to disk: unwrapped, redacted, labelled.
+
+    Both capture paths go through here - `run --execute --capture-payload` during
+    a batch, and `capture-run --run-id` for a run that already happened - so a
+    committed sample has the same shape whichever one produced it.
+    """
     normalized = normalize_tool_result(payload)
     if not isinstance(normalized, dict):
         normalized = {"payload": normalized}
-    redacted = _redact_secrets(normalized)
-    blob = json.dumps(redacted, default=str)
-    for number in sorted(set(E164_IN_TEXT.findall(blob)), key=len, reverse=True):
-        blob = blob.replace(number, mask_phone(number))
-    document = json.loads(blob)
-    if isinstance(document, dict):
-        document.setdefault(
-            "_note",
-            "Captured from get_call_run. Phone numbers masked; secrets redacted.",
-        )
+    document = redact_payload(normalized)
+    document.setdefault(
+        "_note",
+        "Captured from get_call_run. Phone numbers masked; secrets redacted.",
+    )
     return document
 
 
@@ -406,6 +459,10 @@ class CalleCaller:
     # Called with the run id as soon as the provider returns one, so the runner
     # can record that a call is in flight before it can be lost (B3).
     dispatch_hook: Callable[[str], None] | None = None
+    # Where to save the terminal `get_call_run` payload, redacted. A live call
+    # is expensive and unrepeatable; without this the provider's real response
+    # shape is seen once, at runtime, and then thrown away (B1).
+    capture_path: str | Path | None = None
     audit_ref: str | None = None
     events: list[dict[str, Any]] = field(default_factory=list)
     _token: str | None = field(default=None, init=False, repr=False)
@@ -535,8 +592,20 @@ class CalleCaller:
 
         return self._report_from(final, run_id)
 
+    def _capture(self, final: Any) -> None:
+        """Save the terminal payload, redacted, for the extractor tests to use."""
+        if self.capture_path is None:
+            return
+        target = Path(os.path.expanduser(str(self.capture_path)))
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(sanitize_call_run(final), indent=2, sort_keys=True, default=str) + "\n",
+            encoding="utf-8",
+        )
+
     def _report_from(self, final: Any, run_id: str) -> CallReport:
         """Turn a terminal `get_call_run` payload into a CallReport."""
+        self._capture(final)
         status = extract_status(final)
         summary = extract_summary(final)
         transcript = extract_transcript(final)
