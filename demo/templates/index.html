@@ -45,6 +45,16 @@
     --logo-size-nav: 30px;
     --logo-size-hero: 52px;
     --stroke: 1.5px;
+
+    /* One hue per rule. Identity, not verdict: green and red still say pass and
+       refuse, these say which rule is speaking. Each ink colour clears 4.5:1 on
+       its soft background. */
+    --r1: #4f46e5; --r1-soft: #eef0ff; --r1-ink: #3730a3;   /* call window  */
+    --r2: #0d9488; --r2-soft: #e0f5f2; --r2-ink: #0f5e57;   /* consent      */
+    --r3: #c026d3; --r3-soft: #fbe8fb; --r3-ink: #86198f;   /* not on DNC   */
+    --r4: #0284c7; --r4-soft: #e2f2fb; --r4-ink: #075985;   /* disclosure   */
+    --r5: #d97706; --r5-soft: #fdf1dc; --r5-ink: #92400e;   /* live opt-out */
+    --spectrum: linear-gradient(90deg, var(--r1), var(--r3) 45%, #f54e00 75%, var(--r5));
   }
 
   /* Logo — monochrome line art on warm canvas. multiply hides JPG white fill. */
@@ -378,7 +388,9 @@
     margin: 0 0 4px;
   }
   .decision-id .meta { font-size: 12px; color: var(--muted); }
-  .verdict {
+  /* Scoped to the badge: the transcript's gate row also carries `verdict`, and a
+     bare selector gave that sentence white-space: nowrap on narrow screens. */
+  span.verdict {
     font-family: var(--font-display);
     font-size: 13px;
     letter-spacing: -0.005em;
@@ -570,7 +582,147 @@
   }
   .footer-brand .brand-wordmark { font-size: 13px; }
 
+  /* Colour ---------------------------------------------------------------- */
+  .logo { border-radius: 8px; }
+
+  .hero { isolation: isolate; }
+  .hero::after {
+    content: "";
+    position: absolute;
+    /* No horizontal overhang: a pseudo-element past the edge widens the page. */
+    inset: -40px 0 auto 0;
+    height: 420px;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(38% 60% at 12% 30%, rgba(79, 70, 229, 0.13), transparent 70%),
+      radial-gradient(30% 55% at 48% 10%, rgba(192, 38, 211, 0.10), transparent 70%),
+      radial-gradient(34% 60% at 85% 35%, rgba(13, 148, 136, 0.12), transparent 70%),
+      radial-gradient(28% 50% at 65% 70%, rgba(217, 119, 6, 0.10), transparent 70%);
+    filter: blur(6px);
+  }
+  .hero h1 .spectrum {
+    background: var(--spectrum);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .nav::after {
+    content: "";
+    display: block;
+    height: 2px;
+    background: var(--spectrum);
+    opacity: 0.85;
+  }
+
+  /* The stance: why this has to exist, in three numbers. */
+  .stance {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+    margin: 0 0 var(--space-xl);
+  }
+  .stance-item {
+    position: relative;
+    background: var(--elevated);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) var(--space-xl);
+    overflow: hidden;
+  }
+  .stance-item::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--tone);
+  }
+  .stance-item .big {
+    font-family: var(--font-display);
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--tone);
+    font-variant-numeric: tabular-nums;
+  }
+  .stance-item .small { font-size: 12px; color: var(--muted); margin-top: 6px; max-width: 34ch; }
+  .stance-line {
+    grid-column: 1 / -1;
+    font-family: var(--font-display);
+    font-size: 15px;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    margin: 2px 0 0;
+  }
+  .stance-line b { font-weight: 500; }
+
+  /* Rule identity */
+  .rid-r1 { --tone: var(--r1); --tone-soft: var(--r1-soft); --tone-ink: var(--r1-ink); }
+  .rid-r2 { --tone: var(--r2); --tone-soft: var(--r2-soft); --tone-ink: var(--r2-ink); }
+  .rid-r3 { --tone: var(--r3); --tone-soft: var(--r3-soft); --tone-ink: var(--r3-ink); }
+  .rid-r4 { --tone: var(--r4); --tone-soft: var(--r4-soft); --tone-ink: var(--r4-ink); }
+  .rid-r5 { --tone: var(--r5); --tone-soft: var(--r5-soft); --tone-ink: var(--r5-ink); }
+
+  .rule-cell[class*="rid-"]::before {
+    content: "";
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--tone);
+    flex-shrink: 0;
+  }
+
+  .decision.refused[class*="rid-"] .decision-bar { background: var(--tone); }
+  .decision.refused[class*="rid-"] { background: linear-gradient(90deg, var(--tone-soft), transparent 38%); }
+  .why-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 24px; padding: 0 10px;
+    border-radius: var(--radius-pill);
+    background: var(--tone-soft);
+    color: var(--tone-ink);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    margin-bottom: var(--space-sm);
+  }
+  .why-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--tone); }
+
+  .policy-row { display: grid; grid-template-columns: auto 1fr; gap: 0 var(--space-md); align-items: start; }
+  .rule-tag {
+    grid-row: span 2;
+    display: grid; place-items: center;
+    width: 30px; height: 30px; margin-top: 1px;
+    border-radius: 8px;
+    background: var(--tone-soft);
+    color: var(--tone-ink);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  }
+
+  .pipe-step .n { display: inline-flex; align-items: center; gap: 6px; color: var(--tone-ink); font-weight: 600; }
+  .pipe-step .n::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
+  .pipe-step { background: linear-gradient(180deg, var(--tone-soft), transparent 70%); }
+
+  .stat { position: relative; }
+  .stat::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--tone, var(--hairline)); }
+  .stat.batch   { --tone: var(--r1); }
+  .stat.refused { --tone: var(--red); }
+  .stat.cleared { --tone: var(--green); }
+  .stat.optouts { --tone: var(--r5); }
+  .stat.audit   { --tone: var(--r2); }
+  .stat.batch .v { color: var(--r1-ink); }
+  .stat.audit .v { color: var(--r2-ink); }
+
+  .presets label { position: relative; padding-left: calc(var(--space-lg) + 14px); }
+  .presets label::before {
+    content: ""; position: absolute; left: var(--space-lg); top: 17px;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--tone, var(--muted));
+  }
+  .presets input:checked + label { box-shadow: inset 0 0 0 1px var(--tone, var(--ink)); border-color: var(--tone, var(--ink)); background: var(--tone-soft, var(--elevated)); }
+  .preset-morning { --tone: var(--r5); --tone-soft: var(--r5-soft); }
+  .preset-evening { --tone: var(--r1); --tone-soft: var(--r1-soft); }
+  .preset-midday  { --tone: #f54e00;   --tone-soft: #fff0e8; }
+  .preset-now     { --tone: var(--r2); --tone-soft: var(--r2-soft); }
+
+  .btn-primary { background: linear-gradient(135deg, var(--ink-deep), #3b3470); }
+
   @media (max-width: 900px) {
+    .stance { grid-template-columns: 1fr; }
     .hero-grid { grid-template-columns: 1fr; }
     .presets { grid-template-columns: repeat(2, 1fr); }
     .stats { grid-template-columns: repeat(3, 1fr); }
@@ -583,6 +735,9 @@
   }
   @media (max-width: 560px) {
     .wrap { padding: 0 var(--space-lg); }
+    /* .wrap above resets all padding; restore the hero's vertical rhythm. */
+    .hero { padding: var(--space-2xl) var(--space-lg) var(--space-xl); }
+    .stance-item .big { font-size: 22px; }
     .stats { grid-template-columns: 1fr 1fr; }
     .stat { border-right: 0; border-bottom: 1px solid var(--hairline); }
     .stat:nth-child(odd) { border-right: 1px solid var(--hairline); }
@@ -634,7 +789,7 @@
         <img class="logo hero-size" src="/static/logo.jpg" alt="" width="52" height="52" />
         <p class="eyebrow" style="margin:0">Compliance gate for outbound collections</p>
       </div>
-      <h1 class="display">Lawful call, or provably refused.</h1>
+      <h1 class="display">Lawful call, or <span class="spectrum">provably refused.</span></h1>
       <p class="lede">
         Five US federal rules run before every dial — call window, consent, suppression,
         disclosure, and live opt-out. Refused calls never reach a provider.
@@ -655,21 +810,39 @@
 </header>
 
 <main class="wrap">
+  {% if summary %}
+  <div class="stance">
+    <div class="stance-item" style="--tone: var(--red)">
+      <div class="big">$500&ndash;$1,500</div>
+      <div class="small">in statutory damages for each non-compliant collection call under the TCPA.</div>
+    </div>
+    <div class="stance-item rid-r3">
+      <div class="big">Operator liable</div>
+      <div class="small">When an AI agent dials wrong, the lender pays. The software does not.</div>
+    </div>
+    <div class="stance-item rid-r2">
+      <div class="big">{{ summary.blocked }} of {{ summary.accounts }}</div>
+      <div class="small">accounts in this batch refused before a single number was dialled.</div>
+    </div>
+    <p class="stance-line">CALL-E places the call. <b>Cleared to Call decides whether it may</b> &mdash; and leaves proof either way.</p>
+  </div>
+  {% endif %}
+
   <div class="toolbar">
     <p class="eyebrow toolbar-label">Set evaluation time</p>
     <form method="post" action="/run">
       <div class="presets">
         {% set presets = [
-          ("2026-08-28T13:30:00Z", "Mid-morning", "US East — most clear"),
-          ("2026-08-28T02:00:00Z", "Late evening", "Time-window blocks"),
-          ("2026-08-28T16:00:00Z", "Midday", "Nationwide mix"),
-          ("", "Right now", "Current UTC")
+          ("2026-08-28T13:30:00Z", "Mid-morning", "US East — most clear", "morning"),
+          ("2026-08-28T02:00:00Z", "Late evening", "Time-window blocks", "evening"),
+          ("2026-08-28T16:00:00Z", "Midday", "Nationwide mix", "midday"),
+          ("", "Right now", "Current UTC", "now")
         ] %}
         {% set known = presets|map("first")|list %}
-        {% for value, title, hint in presets %}
+        {% for value, title, hint, tone in presets %}
           <input type="radio" name="now" id="p{{ loop.index }}" value="{{ value }}"
                  {% if now_input == value or (now_input not in known and loop.last) %}checked{% endif %} />
-          <label for="p{{ loop.index }}">
+          <label for="p{{ loop.index }}" class="preset-{{ tone }}">
             <span class="t">{{ title }}</span>
             <span class="s">{{ hint }}</span>
           </label>
@@ -683,22 +856,22 @@
   </div>
 
   <div class="pipeline">
-    <div class="pipe-step">
+    <div class="pipe-step rid-r2">
       <div class="n">01</div>
       <div class="t">Load accounts</div>
       <div class="s">Consent, timezone, balance</div>
     </div>
-    <div class="pipe-step">
+    <div class="pipe-step rid-r1">
       <div class="n">02</div>
       <div class="t">Pre-dial gate</div>
       <div class="s">Rules 1–4 evaluated</div>
     </div>
-    <div class="pipe-step">
+    <div class="pipe-step rid-r3">
       <div class="n">03</div>
       <div class="t">Call or refuse</div>
       <div class="s">Blocked accounts never dial</div>
     </div>
-    <div class="pipe-step">
+    <div class="pipe-step rid-r4">
       <div class="n">04</div>
       <div class="t">Audit log</div>
       <div class="s">Hash-chained record</div>
@@ -707,7 +880,7 @@
 
   {% if summary %}
   <div class="stats">
-    <div class="stat">
+    <div class="stat batch">
       <div class="k">In batch</div>
       <div class="v">{{ summary.accounts }}</div>
       <div class="d">Evaluated</div>
@@ -727,7 +900,7 @@
       <div class="v">{{ summary.opt_outs }}</div>
       <div class="d">Suppressed</div>
     </div>
-    <div class="stat">
+    <div class="stat audit">
       <div class="k">Audit</div>
       <div class="v">{{ audit_total }}</div>
       <div class="d">Chain entries</div>
@@ -754,7 +927,8 @@
         "A-1004": "DNC list",
         "A-1005": "Live opt-out"
       } %}
-      <article class="decision {% if not record.decision.allowed %}refused{% elif result.opt_out %}optout{% else %}cleared{% endif %}">
+      {% set first_fail = record.decision.rules|rejectattr("passed")|first %}
+      <article class="decision {% if not record.decision.allowed %}refused{% if first_fail %} rid-{{ first_fail.rule_id|lower }}{% endif %}{% elif result.opt_out %}optout rid-r5{% else %}cleared{% endif %}">
         <div class="decision-bar"></div>
         <div class="decision-inner">
           <div class="decision-top">
@@ -776,6 +950,11 @@
             {% endif %}
           </div>
 
+          {% if first_fail %}
+          <span class="why-pill">{{ first_fail.rule_id }} &middot; {% if first_fail.name == "call_window" %}Call window{% elif first_fail.name == "consent_on_file" %}Consent{% elif first_fail.name == "not_suppressed" %}Do-not-call list{% elif first_fail.name == "disclosure_ready" %}Disclosure{% else %}{{ first_fail.name|replace("_", " ")|title }}{% endif %}</span>
+          {% elif result.opt_out %}
+          <span class="why-pill">R5 &middot; Live opt-out</span>
+          {% endif %}
           <p class="decision-verdict">
             {% if result.block_reason %}
               <strong>Cannot call.</strong>
@@ -803,7 +982,7 @@
 
           <div class="rule-matrix">
             {% for rule in record.decision.rules %}
-            <span class="rule-cell {% if rule.passed %}pass{% else %}fail{% endif %}" title="{{ rule.detail }}">
+            <span class="rule-cell rid-{{ rule.rule_id|lower }} {% if rule.passed %}pass{% else %}fail{% endif %}" title="{{ rule.detail }}">
               <span class="mark">{% if rule.passed %}✓{% else %}×{% endif %}</span>
               {% if rule.name == "call_window" %}Call window
               {% elif rule.name == "consent_on_file" %}Consent
@@ -813,12 +992,12 @@
             </span>
             {% endfor %}
             {% if record.transcript %}
-            <span class="rule-cell {% if result.opt_out %}fail{% else %}pass{% endif %}">
+            <span class="rule-cell rid-r5 {% if result.opt_out %}fail{% else %}pass{% endif %}">
               <span class="mark">{% if result.opt_out %}×{% else %}✓{% endif %}</span>
               Live opt-out
             </span>
             {% elif record.decision.allowed %}
-            <span class="rule-cell pending"><span class="mark">—</span>Live opt-out</span>
+            <span class="rule-cell rid-r5 pending"><span class="mark">—</span>Live opt-out</span>
             {% endif %}
           </div>
 
@@ -931,8 +1110,9 @@
           <p>{{ policy.policy_id }} v{{ policy.policy_version }} · {{ policy.window_label }}</p>
         </div>
         {% for rule in policy.rules %}
-        <div class="policy-row">
-          <div class="t">{{ rule.id }} · {{ rule.name|replace("_", " ")|title }}</div>
+        <div class="policy-row rid-{{ rule.id|lower }}">
+          <span class="rule-tag">{{ rule.id }}</span>
+          <div class="t">{{ rule.name|replace("_", " ")|title }}</div>
           <div class="s">{{ rule.requirement }}</div>
         </div>
         {% endfor %}

@@ -295,3 +295,39 @@ def test_the_page_still_tells_the_story_without_any_icons(client):
         "ON_SUPPRESSION_LIST",
     ):
         assert essential in body, f"{essential} is carried only by an icon"
+
+
+def test_each_refusal_is_coloured_by_the_rule_that_refused_it(client):
+    """Red says refused; the hue says which rule. A mismatch would mislead."""
+    import re
+
+    body = client.get("/").text
+    articles = re.findall(r'<article class="decision ([^"]+)">(.*?)</article>', body, re.S)
+    refused = {classes: html for classes, html in articles if classes.startswith("refused")}
+    assert len(refused) == 3
+
+    expected = {
+        "rid-r1": ("R1", "OUTSIDE_CALL_WINDOW"),
+        "rid-r2": ("R2", "NO_CONSENT"),
+        "rid-r3": ("R3", "ON_SUPPRESSION_LIST"),
+    }
+    for classes, html in refused.items():
+        hue = next(name for name in classes.split() if name.startswith("rid-"))
+        rule_id, code = expected[hue]
+        assert f'<span class="why-pill">{rule_id} &middot;' in html, classes
+        assert code in html, f"{hue} is on a card refused for a different reason"
+
+
+def test_the_stance_strip_reports_this_batch(client):
+    body = client.get("/").text
+    assert "$500&ndash;$1,500" in body
+    assert "3 of 7" in body
+    assert "Cleared to Call decides whether it may" in body
+
+
+def test_the_badge_style_does_not_leak_into_the_transcript(client):
+    """`.verdict` is both the badge and the transcript's gate row. A bare selector
+    gave the transcript sentence white-space: nowrap and pushed mobile sideways."""
+    body = client.get("/").text
+    assert "  span.verdict {" in body
+    assert "\n  .verdict {" not in body
