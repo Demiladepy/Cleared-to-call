@@ -6,9 +6,9 @@ Everything needed to ship, plus the four things only you can supply.
 
 | Phase | State |
 | --- | --- |
-| 1. Core gate, audit chain, suppression, fixtures, tests | Done — 190 tests green |
+| 1. Core gate, audit chain, suppression, fixtures, tests | Done — 274 tests green |
 | 2. Dry-run batch loop + Agent Skill | Done — `validate_repository.py` passes, verified |
-| 3. CALL-E wiring (`plan_call` → `run_call` → `get_call_run`) | Code done, **never run live** |
+| 3. CALL-E wiring (`plan_call` → `run_call` → `get_call_run`) | Run live: 3 calls dispatched, 4 bugs fixed, **none connected yet** |
 | 4. Demo app | Done — live at https://clearedtocall.vercel.app |
 | 5. Submission | Needs you: see below |
 
@@ -16,19 +16,23 @@ Everything needed to ship, plus the four things only you can supply.
 
 1. **CALL-E account + CLI login.** `npm install -g @call-e/cli && calle auth login`.
    The live caller reads the CLI token cache; there is no place to paste a key.
-2. **A phone you own in a region CALL-E can dial.** Run preflight first — it
-   spends no credits:
+2. **One call that connects.** It is the last thing standing between this and a
+   finished submission: the opt-out beat in the video, and B1's check that
+   CALL-E's real speaker labels map onto `agent` / `recipient`. Run preflight
+   first; it spends no credits and now also reports whether the plan's
+   destination can be checked:
 
    ```bash
    python -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region US
    ```
 
-   On the current `openagent_oauth` channel, supported combinations are **US,
-   SG, AU, and IN — all English**. A Nigerian `+234` destination is recognized
-   but blocked (`ready_to_run: false`) on every region we tested. To place a
-   live call you need a number in a supported country (for example a US E.164
-   on account `A-9001` with `--region US`, or an Indian number with
-   `--region IN`). Preflight prints the exact block reason when it fails.
+   Nigeria has not produced a connected call on either account that tried it.
+   One account got `ready_to_run: false` with a reason naming the supported
+   regions (US, SG, AU, IN — English). The other got NG calls planned and
+   dispatched, then `DECLINED` with zero duration because the carrier rejected
+   CALL-E's international caller ID. A local NG line has been requested on the
+   CALL-E Discord. Until then, the practical route is a consenting person with a
+   US, IN, SG or AU number.
 3. **The jurisdiction is US federal (TCPA / FDCPA / Reg F).** The test number's
    country and the account's IANA timezone can differ — say so in the video.
    The gate reads `account.timezone` for rule 1, not the area code. If the real
@@ -90,6 +94,9 @@ and suppresses the number permanently.
 Every decision — allow or refuse — appends one line to a hash-chained audit log,
 so an edited, deleted, or reordered entry is detectable.
 
+It pairs with `skills/ledger-collections-call`, which lists consumer FDCPA
+collections under *When Not To Use*: this is that missing layer.
+
 ## Why it belongs here
 
 It wraps the existing CALL-E call workflow rather than replacing it. The skill
@@ -127,7 +134,7 @@ node skills/cleared-to-call/scripts/validate-input.mjs \
   --file skills/cleared-to-call/assets/example-accounts.json
 ```
 
-Full test suite (190 tests) lives in the companion repo, including a parity test
+Full test suite (274 tests) lives in the companion repo, including a parity test
 that runs the Node gate and a Python implementation over the same fixtures and
 compares every verdict.
 ```
@@ -150,15 +157,21 @@ compares every verdict.
 Set up once, off camera:
 
 ```bash
-# Confirm NG dials, for free, before spending anything.
-python -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region NG
+# In fixtures/demo-live.json, set A-9001 to the consenting person's number AND
+# their real IANA timezone (America/New_York, Asia/Kolkata, Asia/Singapore,
+# Australia/Sydney). Rule 1 reads that timezone; it never guesses from the number.
 
-# Start the demo with your own number in the batch and the live button armed.
-python -m demo.app --accounts fixtures/demo-live.json --region NG --allow-live
+# Confirm it dials and the destination can be checked, for free.
+python -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region US
+
+# Start the demo with the live button armed. Use the same --region as preflight.
+python -m demo.app --accounts fixtures/demo-live.json --region US --allow-live
 ```
 
-Record between 07:00 and 20:00 UTC. Outside that, Lagos is beyond the 08:00–21:00
-window and the gate will correctly refuse your own live call.
+Record while it is between 08:00 and 21:00 where the recipient is. Outside that
+window the gate correctly refuses the live call, which is right but costs a take.
+If preflight reports the destination as unchecked, `--execute` refuses too;
+decide about `--allow-unverified-destination` off camera, not during the take.
 
 | Time | Beat | On screen |
 | --- | --- | --- |
@@ -223,6 +236,50 @@ Observations from building against the CALL-E surface, most useful first.
    between the documented principle and the available fields is where
    integrators fail.
 
+### Found by placing live calls
+
+These came from three real dispatched calls and the review of the work around
+them, not from reading documentation.
+
+8. **A call that never rang comes back `DECLINED`.** Three calls returned
+   `DECLINED` with `duration_seconds: 0`, `hangup_type: ByCallee`, identical
+   start and end times, and no transcript. The phone never rang: the carrier
+   rejected the international caller ID. `DECLINED` reads as "the person
+   declined", and `ByCallee` says the same. Any integration that maps statuses to
+   outcomes will record a consumer as having refused a call they never received.
+   In collections that is a false statement in a legal record. A distinct status
+   or reason code for carrier rejection would prevent it.
+9. **Planning succeeds for calls that cannot connect.** On one account, NG
+   destinations plan and dispatch, then fail at the carrier. On another, the same
+   destination is refused at `plan_call` with a clear reason. Whether a
+   destination is served by a local or an international line is account-specific
+   and invisible in the plan response, so `ready_to_run: true` is not evidence a
+   call will ring. Exposing the line type, and warning where international caller
+   ID is routinely rejected, would let an integrator stop before spending credit.
+10. **The MCP result shape silently changes what integrations read.** fastmcp 3.x
+    returns a `CallToolResult` object without `model_dump`, and depending on the
+    tool the payload arrives on `structured_content` or only as JSON text in
+    `content`. Code that reads the wrong one sees `ready_to_run` as missing, which
+    looks exactly like an unsupported destination. Two developers on this project
+    hit it independently. Documenting the shape, or always populating
+    `structured_content`, would remove it.
+11. **MCP and REST diverge on structured results.** `plan_call` over MCP rejects
+    `result_schema` with `Unexpected keyword argument`, and because unknown keys
+    fail the call rather than being ignored, trying it breaks every live run.
+    `POST /v1/calls` accepts task-level `result_schema` and
+    `recipient_result_schema` (used by `skills/ledger-collections-call`). An
+    MCP-first integrator is pushed back onto regex over the agent's prose for the
+    very outcome that matters most, including whether the person opted out.
+12. **The destination is only echoed masked.** The plan response shows `…9724`,
+    never the full number. That is good for privacy, but it leaves an integrator
+    only four digits to confirm the plan will dial the person they cleared. A
+    stable keyed hash of the destination, or accepting an expected-destination
+    value and refusing on mismatch server-side, would make that check exact.
+13. **Transcript speaker labels are undocumented.** Opt-out detection has to read
+    what the *recipient* said, so it depends on knowing which label marks the
+    recipient. No connected call has been available to learn the vocabulary, and
+    the docs do not state it. A wrong guess means a missed opt-out, silently.
+
 ## Prior art in the repo, and how this differs
 
 `apps/python/consent-gate` (CALL-E ConsentGate) covers adjacent ground: consent
@@ -245,3 +302,9 @@ What is different here:
   a verifier and tests that prove edits, deletions and reorderings are caught.
 - **Parity.** The shipped Node gate and the tested Python gate read one policy
   file, and a test compares their verdicts account by account.
+
+`skills/ledger-collections-call` is the other collections skill upstream, and it
+is a complement rather than a competitor: it lists *"Consumer FDCPA / statutory
+debt-collection engines"* under **When Not To Use**. That is the layer this skill
+provides. The two compose: this gate decides whether a consumer collection call
+may happen at all, and a caller such as that one places it.
