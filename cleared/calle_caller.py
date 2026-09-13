@@ -7,8 +7,10 @@ the CALL-E repository documents:
 
 Two things here are safety rather than plumbing:
 
-- the plan is inspected before it runs, and a plan that targets any number other
-  than the cleared one is refused;
+- the plan is inspected before it runs. CALL-E echoes the destination masked,
+  so a plan is refused when a full number differs from the cleared one, when a
+  masked destination ends in different digits, or when it names no destination
+  at all (unless the operator explicitly accepts that);
 - the returned transcript is normalized into `agent` / `recipient` turns, because
   the opt-out re-check downstream only reads recipient turns.
 
@@ -46,6 +48,15 @@ from .script import CallScript
 
 INTEGRATION_HEADER = "cleared-to-call/0.1.0"
 E164_IN_TEXT = re.compile(r"\+\d{8,15}")
+# A number written without its `+`: `2349056215207`, `15550101234`, or the
+# national form `09056215207`. Providers do this in free text and in numeric
+# fields, and E164_IN_TEXT cannot see it.
+BARE_PHONE_DIGITS = re.compile(r"(?<![\d+*])\d{10,15}(?!\d)")
+# A destination the provider echoes back masked, such as `…9724`,
+# `...9724` or `+2********9724`. Symbol masks only: the goal text we send says
+# "your account ending 1001", and matching words like "ending" would read that
+# account tail as a wrong phone number and refuse every live call.
+MASKED_DESTINATION = re.compile(r"(?:\u2026|\.{3}|\*{2,})(\d{4})(?!\d)")
 PROMISE_DATE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
 INLINE_TURN = re.compile(r"\[\d{2}:\d{2}:\d{2}\]\s*([A-Za-z_]+)\s*:\s*")
 
@@ -375,6 +386,21 @@ def extract_promise_date(summary: str | None, transcript: tuple[TranscriptTurn, 
     return None
 
 
+def looks_like_epoch(digits: str) -> bool:
+    """A Unix timestamp in seconds or milliseconds between 2017 and 2033.
+
+    Provider payloads are full of these, and they are the one common kind of
+    10- or 13-digit run that is not a phone number. Masking them would make a
+    captured sample useless without making it any safer.
+    """
+    return len(digits) in (10, 13) and digits[0] == "1" and digits[1] in "56789"
+
+
+def _mask_bare_number(match: re.Match[str]) -> str:
+    digits = match.group(0)
+    return digits if looks_like_epoch(digits) else mask_phone(digits)
+
+
 def _names_a_credential(key: str) -> bool:
     lowered = key.lower()
     return any(hint in lowered for hint in SECRET_KEY_HINTS)
@@ -400,8 +426,14 @@ def redact_payload(value: Any) -> Any:
         return [redact_payload(item) for item in value]
     if isinstance(value, tuple):
         return tuple(redact_payload(item) for item in value)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and BARE_PHONE_DIGITS.fullmatch(str(abs(value))):
+        digits = str(abs(value))
+        return value if looks_like_epoch(digits) else mask_phone(digits)
     if isinstance(value, str):
-        return E164_IN_TEXT.sub(lambda match: mask_phone(match.group(0)), value)
+        masked = E164_IN_TEXT.sub(lambda match: mask_phone(match.group(0)), value)
+        return BARE_PHONE_DIGITS.sub(_mask_bare_number, masked)
     return value
 
 
@@ -423,23 +455,72 @@ def sanitize_call_run(payload: Any) -> dict[str, Any]:
     return document
 
 
-def plan_targets_only(plan: Any, phone: str) -> None:
-    """Refuse a plan that mentions any number other than the cleared one."""
-    numbers = set()
+def _plan_strings(plan: Any) -> list[str]:
+    strings: list[str] = []
     for payload in _payloads(plan):
         for value in payload.values():
             if isinstance(value, str):
-                numbers.update(E164_IN_TEXT.findall(value))
+                strings.append(value)
             elif isinstance(value, (list, tuple)):
-                for item in value:
-                    if isinstance(item, str):
-                        numbers.update(E164_IN_TEXT.findall(item))
-    unexpected = {number for number in numbers if number != phone}
+                strings.extend(item for item in value if isinstance(item, str))
+    return strings
+
+
+def plan_targets_only(plan: Any, phone: str) -> str:
+    """Refuse a plan aimed at anyone but the cleared number. Report how it was checked.
+
+    CALL-E's plan response does not echo the full destination; it shows a masked
+    one, such as `…9724`. Comparing full numbers alone therefore found nothing to
+    compare and passed every plan, including one aimed at the wrong person. So
+    both forms are checked:
+
+    - a full E.164 number must equal the cleared number;
+    - a masked destination must end in the cleared number's last four digits.
+
+    Returns `full_number`, `last_four`, or `unverified` when the plan names no
+    destination at all. Raises on any mismatch.
+    """
+    full: set[str] = set()
+    suffixes: set[str] = set()
+    for text in _plan_strings(plan):
+        full.update(E164_IN_TEXT.findall(text))
+        suffixes.update(MASKED_DESTINATION.findall(text))
+
+    unexpected = {number for number in full if number != phone}
     if unexpected:
         raise CallerError(
             f"plan_call returned a plan targeting {len(unexpected)} number(s) other than the "
             "cleared account. Refusing to run it."
         )
+    wrong_suffix = {suffix for suffix in suffixes if suffix != phone[-4:]}
+    if wrong_suffix:
+        raise CallerError(
+            "plan_call returned a plan whose destination ends in "
+            f"{', '.join(sorted(wrong_suffix))}, not the cleared account's last four digits. "
+            "Refusing to run it."
+        )
+    if full:
+        return "full_number"
+    if suffixes:
+        return "last_four"
+    return "unverified"
+
+
+def require_verified_destination(plan: Any, phone: str, *, allow_unverified: bool) -> str:
+    """The destination check as the live dialler applies it: fail closed.
+
+    A plan that names no destination cannot be checked against the cleared
+    account, and a check that cannot run is not a pass. Refuse it unless the
+    operator has explicitly accepted that, after seeing it in `preflight`.
+    """
+    result = plan_targets_only(plan, phone)
+    if result == "unverified" and not allow_unverified:
+        raise CallerError(
+            "plan_call echoed no destination number, so the plan cannot be checked "
+            "against the cleared account. Refusing to run it. If `preflight` shows the "
+            "same and you accept the risk, pass --allow-unverified-destination."
+        )
+    return result
 
 
 @dataclass
@@ -463,9 +544,13 @@ class CalleCaller:
     # is expensive and unrepeatable; without this the provider's real response
     # shape is seen once, at runtime, and then thrown away (B1).
     capture_path: str | Path | None = None
+    # A plan that echoes no destination cannot be checked against the cleared
+    # number. Refused unless the operator opts in, having seen it in preflight.
+    allow_unverified_destination: bool = False
     audit_ref: str | None = None
     events: list[dict[str, Any]] = field(default_factory=list)
     _token: str | None = field(default=None, init=False, repr=False)
+    _captured: list[Path] = field(default_factory=list, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.base_url = self.base_url or DEFAULT_BASE_URL
@@ -527,7 +612,7 @@ class CalleCaller:
                 build_plan_arguments(account, script, region=self.region, language=self.language),
                 build_call_metadata(account, self.audit_ref, policy),
             )
-        plan_targets_only(plan, account.phone_e164)
+        destination_check = plan_targets_only(plan, account.phone_e164)
         feedback = extract_plan_feedback(plan)
         return {
             "account_id": account.account_id,
@@ -536,6 +621,7 @@ class CalleCaller:
             "ready_to_run": bool(first_value(plan, ("ready_to_run",))),
             "plan_id": first_value(plan, ("plan_id",)),
             "has_confirm_token": isinstance(first_value(plan, ("confirm_token",)), str),
+            "destination_check": destination_check,
             **feedback,
         }
 
@@ -572,6 +658,14 @@ class CalleCaller:
 
             if not first_value(plan, ("ready_to_run",)):
                 raise CallerError("plan_call did not return ready_to_run=true")
+            destination_check = require_verified_destination(
+                plan,
+                account.phone_e164,
+                allow_unverified=self.allow_unverified_destination,
+            )
+            self.record(
+                "destination_check", account_id=account.account_id, result=destination_check
+            )
             plan_id = first_value(plan, ("plan_id",))
             confirm_token = first_value(plan, ("confirm_token",))
             if not isinstance(plan_id, str) or not isinstance(confirm_token, str):
@@ -592,20 +686,46 @@ class CalleCaller:
 
         return self._report_from(final, run_id)
 
-    def _capture(self, final: Any) -> None:
-        """Save the terminal payload, redacted, for the extractor tests to use."""
+    def _capture_target(self, run_id: str) -> Path:
+        """Where this run's payload goes, without overwriting an earlier one.
+
+        `{run_id}` in the path is filled in. Without it, the first capture in a
+        batch takes the path as given and later ones get the run id appended, so
+        a batch of three calls leaves three files rather than one.
+        """
+        raw = os.path.expanduser(str(self.capture_path))
+        if "{run_id}" in raw:
+            return Path(raw.replace("{run_id}", run_id))
+        target = Path(raw)
+        if not self._captured:
+            return target
+        return target.with_name(f"{target.stem}-{run_id}{target.suffix}")
+
+    def _capture(self, final: Any, run_id: str) -> None:
+        """Save the terminal payload, redacted, for the extractor tests to use.
+
+        This runs after the call has connected and before its outcome is recorded.
+        A capture is evidence for developers; the outcome is a compliance record.
+        A full disk or a bad path must never turn a completed call into a provider
+        failure in the audit log, so nothing here is allowed to raise.
+        """
         if self.capture_path is None:
             return
-        target = Path(os.path.expanduser(str(self.capture_path)))
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(
-            json.dumps(sanitize_call_run(final), indent=2, sort_keys=True, default=str) + "\n",
-            encoding="utf-8",
-        )
+        try:
+            target = self._capture_target(run_id)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(
+                json.dumps(sanitize_call_run(final), indent=2, sort_keys=True, default=str) + "\n",
+                encoding="utf-8",
+            )
+            self._captured.append(target)
+            self.record("capture", run_id=run_id, path=str(target))
+        except Exception as error:  # noqa: BLE001 - see the docstring
+            self.record("capture_failed", run_id=run_id, error=f"{type(error).__name__}: {error}")
 
     def _report_from(self, final: Any, run_id: str) -> CallReport:
         """Turn a terminal `get_call_run` payload into a CallReport."""
-        self._capture(final)
+        self._capture(final, run_id)
         status = extract_status(final)
         summary = extract_summary(final)
         transcript = extract_transcript(final)

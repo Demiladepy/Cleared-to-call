@@ -162,7 +162,12 @@ Requirements on the call task handed to CALL-E:
 - the destination must be exactly the cleared account's number
 
 Inspect the plan before running it. If the plan targets a different number than
-the cleared account, do not run it.
+the cleared account, do not run it. Providers often echo the destination masked,
+for example `...9724`: compare its last four digits with the cleared number. A
+plan that names no destination at all cannot be checked, and an unchecked plan
+is not a verified one - do not run it unless the operator explicitly accepts
+that. Match symbol masks only; the call script itself says "account ending
+1001", and reading that as a destination would refuse every call.
 
 ## Structured Result
 

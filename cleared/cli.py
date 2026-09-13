@@ -86,6 +86,7 @@ def build_caller(args: argparse.Namespace, policy: Policy, dry_run: bool) -> Cal
         poll_interval_seconds=args.poll_interval_seconds,
         poll_timeout_seconds=args.poll_timeout_seconds,
         capture_path=getattr(args, "capture_payload", None),
+        allow_unverified_destination=getattr(args, "allow_unverified_destination", False),
     )
 
 
@@ -254,6 +255,16 @@ def command_preflight(args: argparse.Namespace) -> int:
     print(f"\nPlanning a call to {account.masked_phone} in region {args.region} (no call is placed)...")
     plan = caller.plan_only(account, script)
     print(json.dumps(plan, indent=2, ensure_ascii=False))
+    check = plan.get("destination_check")
+    if check == "full_number":
+        print("\nDestination check: the plan names the cleared number in full.")
+    elif check == "last_four":
+        print("\nDestination check: the plan's masked destination ends in the cleared number's last four digits.")
+    else:
+        print(
+            "\nDestination check: the plan names no destination, so it cannot be checked. "
+            "--execute will refuse this plan unless you pass --allow-unverified-destination."
+        )
     if plan["ready_to_run"]:
         print("\nCALL-E accepted the plan. This account can be dialled with --execute.")
         return 0
@@ -411,6 +422,14 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--calle-command", default=None)
     run_parser.add_argument("--poll-interval-seconds", type=float, default=10.0)
     run_parser.add_argument("--poll-timeout-seconds", type=float, default=900.0)
+    run_parser.add_argument(
+        "--allow-unverified-destination",
+        action="store_true",
+        help=(
+            "Dial even when plan_call echoes no destination to check against the cleared "
+            "number. Off by default; run preflight first to see whether you need it."
+        ),
+    )
     run_parser.add_argument(
         "--capture-payload",
         default=None,
