@@ -10,65 +10,29 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet" />
 <style>
-  /* Warm-minimal system — calm canvas, precise ink, one accent.
-     Display at weight 400 with negative tracking; body at 13px. */
   :root {
     --canvas: #f7f7f4;
     --surface: #f2f1ed;
-    --surface-alt: #ebeae5;
     --elevated: #ffffff;
     --ink: #26251e;
     --ink-deep: #1d1b15;
     --muted: #606060;
     --hairline: #e6e5e0;
     --accent: #f54e00;
-    --green: #1f8a65;
-    --green-soft: #e8f5ef;
-    --red: #cf2d56;
-    --red-soft: #fce8ec;
-    --amber: #c08532;
-    --amber-soft: #faf3e6;
-    --font-display: "Inter", system-ui, -apple-system, sans-serif;
+    --ok: #1f8a65;
+    --ok-soft: #e8f5ef;
+    --bad: #cf2d56;
+    --bad-soft: #fce8ec;
+    --warn: #c08532;
+    --warn-soft: #faf3e6;
+    --font-display: "Inter", system-ui, sans-serif;
     --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono", monospace;
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-pill: 9999px;
-    --space-xs: 6px;
-    --space-sm: 8px;
-    --space-md: 12px;
-    --space-lg: 16px;
-    --space-xl: 24px;
-    --space-2xl: 40px;
-    --space-3xl: 64px;
-    --max: 1080px;
-    --logo-size-nav: 30px;
-    --logo-size-hero: 52px;
-    --stroke: 1.5px;
-
-    /* One hue per rule. Identity, not verdict: green and red still say pass and
-       refuse, these say which rule is speaking. Each ink colour clears 4.5:1 on
-       its soft background. */
-    --r1: #4f46e5; --r1-soft: #eef0ff; --r1-ink: #3730a3;   /* call window  */
-    --r2: #0d9488; --r2-soft: #e0f5f2; --r2-ink: #0f5e57;   /* consent      */
-    --r3: #c026d3; --r3-soft: #fbe8fb; --r3-ink: #86198f;   /* not on DNC   */
-    --r4: #0284c7; --r4-soft: #e2f2fb; --r4-ink: #075985;   /* disclosure   */
-    --r5: #d97706; --r5-soft: #fdf1dc; --r5-ink: #92400e;   /* live opt-out */
-    --spectrum: linear-gradient(90deg, var(--r1), var(--r3) 45%, #f54e00 75%, var(--r5));
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+    --radius: 8px;
+    --max: 1040px;
   }
-
-  /* Logo — monochrome line art on warm canvas. multiply hides JPG white fill. */
-  .logo {
-    display: block;
-    height: var(--logo-size-nav);
-    width: auto;
-    mix-blend-mode: multiply;
-  }
-  .logo.hero-size { height: var(--logo-size-hero); }
-  .logo.footer-size { height: 22px; opacity: 0.55; }
 
   *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     background: var(--canvas);
@@ -77,707 +41,447 @@
     font-size: 13px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
   }
 
-  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--space-xl); }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
 
   .display {
     font-family: var(--font-display);
     font-weight: 400;
     letter-spacing: -0.0125em;
-    line-height: 1.2;
+    line-height: 1.15;
   }
   .heading {
     font-family: var(--font-display);
     font-weight: 400;
     letter-spacing: -0.005em;
-    line-height: 1.3;
   }
-  .eyebrow {
+  .label {
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
-    margin: 0 0 var(--space-md);
+    margin: 0 0 10px;
   }
   .mono { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
-  .muted { color: var(--muted); }
 
-  /* Nav --------------------------------------------------------------- */
+  .logo {
+    display: block;
+    height: 28px;
+    width: auto;
+    mix-blend-mode: multiply;
+    border-radius: 6px;
+  }
+
+  /* Nav */
   .nav {
-    position: sticky; top: 0; z-index: 20;
-    background: rgba(247, 247, 244, 0.88);
-    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(247, 247, 244, 0.92);
+    backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--hairline);
   }
-  .nav .inner {
-    display: flex; align-items: center; gap: var(--space-lg);
-    min-height: 56px; flex-wrap: wrap;
+  .nav .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 52px;
+    flex-wrap: wrap;
   }
   .brand {
     display: inline-flex;
     align-items: center;
-    gap: 11px;
+    gap: 10px;
     text-decoration: none;
     color: inherit;
   }
-  .brand:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 4px;
-    border-radius: var(--radius-sm);
-  }
-  .brand-wordmark {
+  .brand:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+  .brand-name {
     font-family: var(--font-display);
     font-size: 14px;
-    font-weight: 400;
-    letter-spacing: -0.0125em;
-    color: var(--ink);
-    line-height: 1;
+    letter-spacing: -0.01em;
   }
-  .brand-tagline {
-    display: block;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-top: 3px;
-  }
-  .spacer { flex: 1; }
-  .tag {
-    display: inline-flex; align-items: center; gap: 6px;
-    height: 26px; padding: 0 10px;
-    border-radius: var(--radius-pill);
+  .grow { flex: 1; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
     border: 1px solid var(--hairline);
     background: var(--surface);
     font-size: 11px;
     font-weight: 500;
     color: var(--muted);
   }
-  .tag.ok { border-color: transparent; background: var(--green-soft); color: var(--green); }
-  .tag.bad { border-color: transparent; background: var(--red-soft); color: var(--red); }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+  .chip.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+  .chip .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
-  /* Hero -------------------------------------------------------------- */
-  .hero {
-    padding: var(--space-3xl) 0 var(--space-2xl);
-    position: relative;
-  }
-  .hero::before {
-    content: "";
-    position: absolute;
-    top: 12px;
-    right: max(0px, calc(50% - 620px));
-    width: 280px;
-    height: 280px;
-    background: url("/static/logo.jpg") center / contain no-repeat;
-    mix-blend-mode: multiply;
-    opacity: 0.045;
-    pointer-events: none;
-  }
-  .hero-intro {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    margin-bottom: var(--space-lg);
-  }
-  .hero-intro .logo { height: var(--logo-size-hero); }
+  /* Hero */
+  .hero { padding: 56px 0 40px; }
   .hero-grid {
     display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: var(--space-2xl);
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 32px;
     align-items: start;
   }
   .hero h1 {
-    margin: 0 0 var(--space-lg);
-    font-size: clamp(32px, 5vw, 46px);
-    max-width: 14ch;
+    margin: 0 0 16px;
+    font-size: clamp(30px, 4.5vw, 42px);
+    max-width: 16ch;
   }
   .hero .lede {
     margin: 0;
     font-size: 15px;
     line-height: 1.6;
     color: var(--muted);
-    max-width: 42ch;
+    max-width: 44ch;
   }
-  .sim-panel {
+  .note {
     background: var(--elevated);
     border: 1px solid var(--hairline);
-    border-radius: var(--radius-md);
-    padding: var(--space-lg) var(--space-xl);
-    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 16px 18px;
   }
-  .sim-panel .label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin: 0 0 var(--space-sm);
-  }
-  .sim-panel p { margin: 0; color: var(--muted); line-height: 1.55; }
+  .note .label { color: var(--ink); margin-bottom: 6px; }
+  .note p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
 
   .flash {
-    margin: var(--space-lg) 0 0;
-    padding: var(--space-md) var(--space-lg);
-    border-radius: var(--radius-md);
+    margin-top: 16px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
     font-size: 13px;
   }
-  .flash.ok { background: var(--green-soft); color: var(--green); }
-  .flash.bad { background: var(--red-soft); color: var(--red); }
+  .flash.ok { background: var(--ok-soft); color: var(--ok); }
+  .flash.bad { background: var(--bad-soft); color: var(--bad); }
 
-  /* Toolbar ----------------------------------------------------------- */
+  /* Toolbar */
   .toolbar {
     background: var(--surface);
     border: 1px solid var(--hairline);
-    border-radius: var(--radius-md);
-    padding: var(--space-lg) var(--space-xl);
-    margin-bottom: var(--space-xl);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 24px;
   }
-  .toolbar-label { margin: 0 0 var(--space-md); }
   .presets {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-sm);
-    margin-bottom: var(--space-lg);
+    gap: 8px;
+    margin-bottom: 14px;
   }
   .presets input { position: absolute; opacity: 0; pointer-events: none; }
   .presets label {
     display: block;
-    padding: var(--space-md) var(--space-lg);
-    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    border-radius: 6px;
     border: 1px solid var(--hairline);
     background: var(--elevated);
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
   }
-  .presets label:hover { border-color: #d4d3cd; }
+  .presets label:hover { border-color: #ccc; }
   .presets input:checked + label {
     border-color: var(--ink);
-    background: var(--elevated);
     box-shadow: inset 0 0 0 1px var(--ink);
   }
-  .presets .t {
-    display: block;
-    font-family: var(--font-display);
-    font-size: 13px;
-    font-weight: 400;
-    letter-spacing: -0.005em;
-    color: var(--ink);
-  }
+  .presets .t { display: block; font-size: 13px; font-weight: 500; color: var(--ink); }
   .presets .s { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    height: 34px; padding: 0 16px;
-    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 999px;
     border: 1px solid transparent;
     font-family: var(--font-display);
     font-size: 13px;
-    font-weight: 400;
     cursor: pointer;
-    transition: opacity 0.15s, background 0.15s;
   }
-  .btn:hover { opacity: 0.88; }
   .btn-primary { background: var(--ink); color: var(--canvas); }
+  .btn-primary:hover { opacity: 0.9; }
   .btn-secondary { background: var(--canvas); color: var(--ink); border-color: var(--hairline); }
-  .btn-live { background: var(--red-soft); color: var(--red); font-size: 12px; height: 30px; padding: 0 12px; }
-  .btn-live:hover { background: var(--red); color: #fff; opacity: 1; }
+  .btn-live { background: var(--bad-soft); color: var(--bad); font-size: 12px; height: 30px; }
+  .btn-live:hover { background: var(--bad); color: #fff; }
 
-  /* Stats strip ------------------------------------------------------- */
+  /* Stats */
   .stats {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     border: 1px solid var(--hairline);
-    border-radius: var(--radius-md);
-    overflow: hidden;
+    border-radius: var(--radius);
     background: var(--elevated);
-    margin-bottom: var(--space-2xl);
+    overflow: hidden;
+    margin-bottom: 40px;
   }
   .stat {
-    padding: var(--space-lg) var(--space-xl);
+    padding: 16px 18px;
     border-right: 1px solid var(--hairline);
   }
   .stat:last-child { border-right: 0; }
-  .stat .k { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .stat .k { font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
   .stat .v {
     font-family: var(--font-display);
-    font-size: 28px;
-    font-weight: 400;
+    font-size: 26px;
     letter-spacing: -0.02em;
-    line-height: 1.1;
     margin: 6px 0 2px;
     font-variant-numeric: tabular-nums;
   }
   .stat .d { font-size: 12px; color: var(--muted); }
-  .stat.refused .v { color: var(--red); }
-  .stat.cleared .v { color: var(--green); }
-  .stat.optouts .v { color: var(--amber); }
+  .stat.bad .v { color: var(--bad); }
+  .stat.ok .v { color: var(--ok); }
+  .stat.warn .v { color: var(--warn); }
 
-  /* Pipeline ---------------------------------------------------------- */
-  .pipeline {
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-    margin-bottom: var(--space-3xl);
+  /* Pipeline */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--hairline);
     border: 1px solid var(--hairline);
-    border-radius: var(--radius-md);
-    background: var(--surface);
+    border-radius: var(--radius);
     overflow: hidden;
+    margin-bottom: 48px;
   }
-  .pipe-step {
-    flex: 1;
-    padding: var(--space-lg) var(--space-xl);
-    position: relative;
-    border-right: 1px solid var(--hairline);
+  .step {
+    background: var(--surface);
+    padding: 16px 18px;
   }
-  .pipe-step:last-child { border-right: 0; }
-  .pipe-step .n {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--muted);
-    margin-bottom: var(--space-sm);
-  }
-  .pipe-step .t {
-    font-family: var(--font-display);
-    font-size: 14px;
-    letter-spacing: -0.005em;
-    margin-bottom: 2px;
-  }
-  .pipe-step .s { font-size: 12px; color: var(--muted); }
+  .step .n { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+  .step .t { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+  .step .s { font-size: 12px; color: var(--muted); }
 
-  /* Section ----------------------------------------------------------- */
-  section { padding-bottom: var(--space-3xl); }
-  .sec-head { margin-bottom: var(--space-xl); }
-  .sec-head h2 { margin: 0 0 var(--space-xs); font-size: 22px; }
-  .sec-head p { margin: 0; color: var(--muted); max-width: 52ch; }
+  section { padding-bottom: 48px; }
+  .sec-head { margin-bottom: 20px; }
+  .sec-head h2 { margin: 0 0 4px; font-size: 20px; }
+  .sec-head p { margin: 0; color: var(--muted); max-width: 50ch; }
 
-  /* Decision list ----------------------------------------------------- */
-  .decisions {
+  /* Decisions */
+  .list {
     border: 1px solid var(--hairline);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background: var(--elevated);
     overflow: hidden;
   }
-  .decision {
-    border-bottom: 1px solid var(--hairline);
+  .item {
     display: grid;
-    grid-template-columns: 4px 1fr;
+    grid-template-columns: 3px 1fr;
+    border-bottom: 1px solid var(--hairline);
   }
-  .decision:last-child { border-bottom: 0; }
-  .decision-bar { background: var(--hairline); width: 4px; }
-  .decision.refused .decision-bar { background: var(--red); }
-  .decision.cleared .decision-bar { background: var(--green); }
-  .decision.optout .decision-bar { background: var(--amber); }
-  .decision-inner { padding: var(--space-xl); min-width: 0; }
+  .item:last-child { border-bottom: 0; }
+  .bar { background: var(--hairline); }
+  .item.refused .bar { background: var(--bad); }
+  .item.cleared .bar { background: var(--ok); }
+  .item.optout .bar { background: var(--warn); }
+  .item-body { padding: 20px; min-width: 0; }
 
-  .decision-top {
+  .item-top {
     display: flex;
-    gap: var(--space-lg);
+    gap: 16px;
     align-items: flex-start;
     flex-wrap: wrap;
-    margin-bottom: var(--space-md);
+    margin-bottom: 10px;
   }
-  .decision-id { flex: 1; min-width: 200px; }
-  .decision-id .name {
-    font-family: var(--font-display);
-    font-size: 16px;
-    letter-spacing: -0.005em;
-    margin: 0 0 4px;
+  .item-id { flex: 1; min-width: 180px; }
+  .item-id .name { font-size: 16px; font-weight: 500; margin: 0 0 3px; }
+  .item-id .meta { font-size: 12px; color: var(--muted); }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 999px;
   }
-  .decision-id .meta { font-size: 12px; color: var(--muted); }
-  /* Scoped to the badge: the transcript's gate row also carries `verdict`, and a
-     bare selector gave that sentence white-space: nowrap on narrow screens. */
-  span.verdict {
-    font-family: var(--font-display);
-    font-size: 13px;
-    letter-spacing: -0.005em;
-    padding: 4px 10px;
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--hairline);
-    background: var(--surface);
-    white-space: nowrap;
-  }
-  .verdict.allow { border-color: transparent; background: var(--green-soft); color: var(--green); }
-  .verdict.block { border-color: transparent; background: var(--red-soft); color: var(--red); }
-  .verdict.warn { border-color: transparent; background: var(--amber-soft); color: var(--amber); }
+  .badge.ok { background: var(--ok-soft); color: var(--ok); }
+  .badge.bad { background: var(--bad-soft); color: var(--bad); }
 
-  .decision-verdict {
+  .reason {
     font-size: 14px;
     line-height: 1.5;
-    margin: 0 0 var(--space-md);
-    max-width: 58ch;
+    margin: 0 0 12px;
+    max-width: 56ch;
   }
-  .decision-verdict strong { font-weight: 600; color: var(--ink-deep); }
-
-  .scenario-tag {
+  .reason strong { font-weight: 600; color: var(--ink-deep); }
+  .hint {
     display: inline-block;
     font-size: 11px;
-    font-weight: 500;
-    color: var(--accent);
-    margin-top: var(--space-sm);
+    color: var(--muted);
+    margin-top: 6px;
   }
 
-  /* Rule matrix ------------------------------------------------------- */
-  .rule-matrix {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-md);
-  }
-  .rule-cell {
+  .rules { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .rule {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    height: 28px;
-    padding: 0 10px;
-    border-radius: var(--radius-sm);
+    gap: 5px;
+    height: 26px;
+    padding: 0 9px;
+    border-radius: 4px;
     border: 1px solid var(--hairline);
-    background: var(--canvas);
     font-size: 11px;
     font-weight: 500;
     color: var(--muted);
+    background: var(--canvas);
   }
-  .rule-cell.pass { border-color: #c5e6d6; background: var(--green-soft); color: var(--green); }
-  .rule-cell.fail { border-color: #f0c4cc; background: var(--red-soft); color: var(--red); }
-  .rule-cell.pending { opacity: 0.7; }
-  .rule-cell .mark {
-    width: 14px; height: 14px; border-radius: 2px;
-    display: grid; place-items: center;
-    font-size: 10px; font-weight: 700;
-    background: rgba(0,0,0,0.06);
-  }
-  .rule-cell.pass .mark { background: rgba(31,138,101,0.15); }
-  .rule-cell.fail .mark { background: rgba(207,45,86,0.12); }
+  .rule.pass { border-color: #c5e6d6; background: var(--ok-soft); color: var(--ok); }
+  .rule.fail { border-color: #f0c4cc; background: var(--bad-soft); color: var(--bad); }
+  .rule.wait { opacity: 0.65; }
 
-  /* Expand panels ----------------------------------------------------- */
-  details.fold > summary {
+  details.more > summary {
     cursor: pointer;
     list-style: none;
     font-size: 12px;
     font-weight: 500;
     color: var(--accent);
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 0;
-    user-select: none;
+    padding: 2px 0;
   }
-  details.fold > summary::-webkit-details-marker { display: none; }
-  details.fold > summary::before { content: "+"; font-family: var(--font-mono); font-size: 11px; }
-  details.fold[open] > summary::before { content: "−"; }
-  .fold-body {
-    margin-top: var(--space-md);
-    padding: var(--space-lg);
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before { content: "+ "; font-family: var(--font-mono); }
+  details.more[open] > summary::before { content: "- "; }
+  .more-body {
+    margin-top: 10px;
+    padding: 14px;
     background: var(--surface);
     border: 1px solid var(--hairline);
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     font-size: 12px;
     color: var(--muted);
   }
-  .fold-body .row { margin-bottom: 5px; }
-  .fold-body .row:last-child { margin-bottom: 0; }
-  .fold-body code {
+  .more-body .row { margin-bottom: 4px; }
+  .more-body code {
     font-family: var(--font-mono);
     font-size: 11px;
     background: var(--elevated);
     padding: 1px 5px;
-    border-radius: 2px;
+    border-radius: 3px;
     border: 1px solid var(--hairline);
     color: var(--ink);
   }
 
-  .transcript .turn {
+  .turn {
     display: grid;
-    grid-template-columns: 72px 1fr;
-    gap: var(--space-md);
-    margin-bottom: var(--space-md);
+    grid-template-columns: 68px 1fr;
+    gap: 12px;
+    margin-bottom: 10px;
     font-size: 13px;
-    line-height: 1.5;
   }
-  .transcript .turn:last-child { margin-bottom: 0; }
-  .transcript .who {
+  .turn .who {
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--muted);
     padding-top: 2px;
   }
-  .transcript .turn.revoked .what { color: var(--amber); font-weight: 500; }
-  .transcript .turn.verdict .what { color: var(--amber); }
+  .turn.hit .what { color: var(--warn); font-weight: 500; }
 
-  .decision-foot { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--hairline); }
+  .item-foot {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--hairline);
+  }
 
-  /* Ledger ------------------------------------------------------------ */
-  .ledger {
+  /* Ledger */
+  .split {
     display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
-    gap: var(--space-xl);
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 20px;
     align-items: start;
   }
-  .ledger > * { min-width: 0; }
+  .split > * { min-width: 0; }
   .panel {
     border: 1px solid var(--hairline);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background: var(--elevated);
     overflow: hidden;
   }
-  .panel-head { padding: var(--space-lg) var(--space-xl); border-bottom: 1px solid var(--hairline); }
-  .panel-head h3 { margin: 0 0 4px; font-size: 16px; }
-  .panel-head p { margin: 0; font-size: 12px; color: var(--muted); }
-  .ledger-row {
+  .panel-h { padding: 16px 18px; border-bottom: 1px solid var(--hairline); }
+  .panel-h h3 { margin: 0 0 3px; font-size: 15px; }
+  .panel-h p { margin: 0; font-size: 12px; color: var(--muted); }
+  .row-item {
     display: flex;
-    gap: var(--space-md);
-    padding: var(--space-md) var(--space-xl);
+    gap: 12px;
+    padding: 12px 18px;
     border-bottom: 1px solid var(--hairline);
     align-items: flex-start;
   }
-  .ledger-row:last-of-type { border-bottom: 0; }
-  .ledger-mark {
-    width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
+  .row-item:last-of-type { border-bottom: 0; }
+  .mark {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+    background: var(--muted);
   }
-  .ledger-mark.allow { background: var(--green); }
-  .ledger-mark.block { background: var(--red); }
-  .ledger-mark.warn { background: var(--amber); }
-  .ledger-row .t { font-size: 13px; font-weight: 500; }
-  .ledger-row .s { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .panel-foot {
-    padding: var(--space-md) var(--space-xl);
+  .mark.ok { background: var(--ok); }
+  .mark.bad { background: var(--bad); }
+  .mark.warn { background: var(--warn); }
+  .row-item .t { font-size: 13px; font-weight: 500; }
+  .row-item .s { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .panel-f {
+    padding: 12px 18px;
     border-top: 1px solid var(--hairline);
     background: var(--surface);
     font-size: 12px;
     color: var(--muted);
   }
 
-  .policy-row {
-    padding: var(--space-md) var(--space-xl);
+  .policy-line {
+    padding: 12px 18px;
     border-bottom: 1px solid var(--hairline);
   }
-  .policy-row:last-child { border-bottom: 0; }
-  .policy-row .t { font-size: 13px; font-weight: 500; }
-  .policy-row .s { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+  .policy-line:last-child { border-bottom: 0; }
+  .policy-line .t { font-size: 13px; font-weight: 500; }
+  .policy-line .s { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
   footer {
-    padding: var(--space-2xl) 0 var(--space-3xl);
+    padding: 32px 0 48px;
     border-top: 1px solid var(--hairline);
     font-size: 12px;
     color: var(--muted);
   }
-  .footer-inner {
-    display: flex;
-    align-items: center;
-    gap: var(--space-lg);
-    flex-wrap: wrap;
-  }
-  .footer-brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding-right: var(--space-lg);
-    border-right: 1px solid var(--hairline);
-    margin-right: var(--space-xs);
-  }
-  .footer-brand .brand-wordmark { font-size: 13px; }
+  .foot-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .foot-brand { display: inline-flex; align-items: center; gap: 8px; }
+  .foot-brand .logo { height: 20px; opacity: 0.5; }
 
-  /* Colour ---------------------------------------------------------------- */
-  .logo { border-radius: 8px; }
-
-  .hero { isolation: isolate; }
-  .hero::after {
-    content: "";
-    position: absolute;
-    /* No horizontal overhang: a pseudo-element past the edge widens the page. */
-    inset: -40px 0 auto 0;
-    height: 420px;
-    z-index: -1;
-    pointer-events: none;
-    background:
-      radial-gradient(38% 60% at 12% 30%, rgba(79, 70, 229, 0.13), transparent 70%),
-      radial-gradient(30% 55% at 48% 10%, rgba(192, 38, 211, 0.10), transparent 70%),
-      radial-gradient(34% 60% at 85% 35%, rgba(13, 148, 136, 0.12), transparent 70%),
-      radial-gradient(28% 50% at 65% 70%, rgba(217, 119, 6, 0.10), transparent 70%);
-    filter: blur(6px);
-  }
-  .hero h1 .spectrum {
-    background: var(--spectrum);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .nav::after {
-    content: "";
-    display: block;
-    height: 2px;
-    background: var(--spectrum);
-    opacity: 0.85;
-  }
-
-  /* The stance: why this has to exist, in three numbers. */
-  .stance {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-md);
-    margin: 0 0 var(--space-xl);
-  }
-  .stance-item {
-    position: relative;
-    background: var(--elevated);
-    border: 1px solid var(--hairline);
-    border-radius: var(--radius-md);
-    padding: var(--space-lg) var(--space-xl);
-    overflow: hidden;
-  }
-  .stance-item::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 3px;
-    background: var(--tone);
-  }
-  .stance-item .big {
-    font-family: var(--font-display);
-    font-size: 26px;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    color: var(--tone);
-    font-variant-numeric: tabular-nums;
-  }
-  .stance-item .small { font-size: 12px; color: var(--muted); margin-top: 6px; max-width: 34ch; }
-  .stance-line {
-    grid-column: 1 / -1;
-    font-family: var(--font-display);
-    font-size: 15px;
-    letter-spacing: -0.005em;
-    color: var(--ink);
-    margin: 2px 0 0;
-  }
-  .stance-line b { font-weight: 500; }
-
-  /* Rule identity */
-  .rid-r1 { --tone: var(--r1); --tone-soft: var(--r1-soft); --tone-ink: var(--r1-ink); }
-  .rid-r2 { --tone: var(--r2); --tone-soft: var(--r2-soft); --tone-ink: var(--r2-ink); }
-  .rid-r3 { --tone: var(--r3); --tone-soft: var(--r3-soft); --tone-ink: var(--r3-ink); }
-  .rid-r4 { --tone: var(--r4); --tone-soft: var(--r4-soft); --tone-ink: var(--r4-ink); }
-  .rid-r5 { --tone: var(--r5); --tone-soft: var(--r5-soft); --tone-ink: var(--r5-ink); }
-
-  .rule-cell[class*="rid-"]::before {
-    content: "";
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--tone);
-    flex-shrink: 0;
-  }
-
-  .decision.refused[class*="rid-"] .decision-bar { background: var(--tone); }
-  .decision.refused[class*="rid-"] { background: linear-gradient(90deg, var(--tone-soft), transparent 38%); }
-  .why-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    height: 24px; padding: 0 10px;
-    border-radius: var(--radius-pill);
-    background: var(--tone-soft);
-    color: var(--tone-ink);
-    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-    margin-bottom: var(--space-sm);
-  }
-  .why-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--tone); }
-
-  .policy-row { display: grid; grid-template-columns: auto 1fr; gap: 0 var(--space-md); align-items: start; }
-  .rule-tag {
-    grid-row: span 2;
-    display: grid; place-items: center;
-    width: 30px; height: 30px; margin-top: 1px;
-    border-radius: 8px;
-    background: var(--tone-soft);
-    color: var(--tone-ink);
-    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
-  }
-
-  .pipe-step .n { display: inline-flex; align-items: center; gap: 6px; color: var(--tone-ink); font-weight: 600; }
-  .pipe-step .n::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
-  .pipe-step { background: linear-gradient(180deg, var(--tone-soft), transparent 70%); }
-
-  .stat { position: relative; }
-  .stat::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--tone, var(--hairline)); }
-  .stat.batch   { --tone: var(--r1); }
-  .stat.refused { --tone: var(--red); }
-  .stat.cleared { --tone: var(--green); }
-  .stat.optouts { --tone: var(--r5); }
-  .stat.audit   { --tone: var(--r2); }
-  .stat.batch .v { color: var(--r1-ink); }
-  .stat.audit .v { color: var(--r2-ink); }
-
-  .presets label { position: relative; padding-left: calc(var(--space-lg) + 14px); }
-  .presets label::before {
-    content: ""; position: absolute; left: var(--space-lg); top: 17px;
-    width: 8px; height: 8px; border-radius: 50%; background: var(--tone, var(--muted));
-  }
-  .presets input:checked + label { box-shadow: inset 0 0 0 1px var(--tone, var(--ink)); border-color: var(--tone, var(--ink)); background: var(--tone-soft, var(--elevated)); }
-  .preset-morning { --tone: var(--r5); --tone-soft: var(--r5-soft); }
-  .preset-evening { --tone: var(--r1); --tone-soft: var(--r1-soft); }
-  .preset-midday  { --tone: #f54e00;   --tone-soft: #fff0e8; }
-  .preset-now     { --tone: var(--r2); --tone-soft: var(--r2-soft); }
-
-  .btn-primary { background: linear-gradient(135deg, var(--ink-deep), #3b3470); }
-
-  @media (max-width: 900px) {
-    .stance { grid-template-columns: 1fr; }
-    .hero-grid { grid-template-columns: 1fr; }
+  @media (max-width: 880px) {
+    .hero-grid, .split { grid-template-columns: 1fr; }
     .presets { grid-template-columns: repeat(2, 1fr); }
     .stats { grid-template-columns: repeat(3, 1fr); }
     .stat:nth-child(3) { border-right: 0; }
-    .stat:nth-child(4), .stat:nth-child(5) { border-top: 1px solid var(--hairline); }
-    .pipeline { flex-direction: column; }
-    .pipe-step { border-right: 0; border-bottom: 1px solid var(--hairline); }
-    .pipe-step:last-child { border-bottom: 0; }
-    .ledger { grid-template-columns: 1fr; }
+    .stat:nth-child(n+4) { border-top: 1px solid var(--hairline); }
+    .steps { grid-template-columns: 1fr 1fr; }
   }
-  @media (max-width: 560px) {
-    .wrap { padding: 0 var(--space-lg); }
-    /* .wrap above resets all padding; restore the hero's vertical rhythm. */
-    .hero { padding: var(--space-2xl) var(--space-lg) var(--space-xl); }
-    .stance-item .big { font-size: 22px; }
+  @media (max-width: 540px) {
+    .wrap { padding: 0 16px; }
+    .hero { padding: 40px 0 32px; }
     .stats { grid-template-columns: 1fr 1fr; }
     .stat { border-right: 0; border-bottom: 1px solid var(--hairline); }
     .stat:nth-child(odd) { border-right: 1px solid var(--hairline); }
-    .stat:last-child { border-bottom: 0; }
-    .presets { grid-template-columns: 1fr; }
-    .footer-brand { border-right: 0; padding-right: 0; margin-right: 0; }
-    .hero::before { display: none; }
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .hero, .toolbar, .stats, .pipeline, .decisions, .ledger {
-      animation: rise 0.5s ease both;
-    }
-    .toolbar { animation-delay: 0.04s; }
-    .stats { animation-delay: 0.08s; }
-    .pipeline { animation-delay: 0.1s; }
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    .presets, .steps { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
 <nav class="nav">
-  <div class="wrap inner">
+  <div class="wrap row">
     <a class="brand" href="/">
-      <img class="logo" src="/static/logo.jpg" alt="" width="30" height="30" />
-      <span>
-        <span class="brand-wordmark">Cleared to Call</span>
-        <span class="brand-tagline">Compliance gate</span>
-      </span>
+      <img class="logo" src="/static/logo.jpg" alt="" width="28" height="28" />
+      <span class="brand-name">Cleared to Call</span>
     </a>
-    <div class="spacer"></div>
-    <span class="tag"><span class="dot"></span>{{ policy.jurisdiction }}</span>
+    <div class="grow"></div>
+    <span class="chip"><span class="dot"></span>{{ policy.jurisdiction }}</span>
     {% if verification.ok %}
-      <span class="tag ok"><span class="dot"></span>Audit chain intact</span>
+      <span class="chip ok"><span class="dot"></span>Audit chain OK</span>
     {% else %}
-      <span class="tag bad"><span class="dot"></span>Chain broken</span>
+      <span class="chip bad"><span class="dot"></span>Chain broken</span>
     {% endif %}
   </div>
 </nav>
@@ -785,126 +489,74 @@
 <header class="wrap hero">
   <div class="hero-grid">
     <div>
-      <div class="hero-intro">
-        <img class="logo hero-size" src="/static/logo.jpg" alt="" width="52" height="52" />
-        <p class="eyebrow" style="margin:0">Compliance gate for outbound collections</p>
-      </div>
-      <h1 class="display">Lawful call, or <span class="spectrum">provably refused.</span></h1>
+      <p class="label">Outbound collections compliance</p>
+      <h1 class="display">Lawful call, or provably refused.</h1>
       <p class="lede">
-        Five US federal rules run before every dial — call window, consent, suppression,
-        disclosure, and live opt-out. Refused calls never reach a provider.
+        Five US federal rules run before every dial: call window, consent,
+        suppression, disclosure, and live opt-out. Refused calls never reach a provider.
       </p>
+      {% if summary %}
+      <p class="lede" style="margin-top:14px;font-size:13px">
+        This batch: {{ summary.blocked }} refused, {{ summary.cleared }} cleared,
+        {{ summary.opt_outs }} opt-out{% if summary.opt_outs != 1 %}s{% endif %}.
+      </p>
+      {% endif %}
       {% if message %}<div class="flash ok">{{ message }}</div>{% endif %}
       {% if error %}<div class="flash bad">{{ error }}</div>{% endif %}
     </div>
-    <aside class="sim-panel">
-      <p class="label">Simulation mode</p>
+    <aside class="note">
+      <p class="label">Dry run</p>
       <p>
-        Borrowers and numbers are fixtures. The gate, audit chain, and opt-out detection
-        are real.
-        {% if run and run.dry_run %}Only dialing is simulated.{% endif %}
-        {% if serverless %}Live calling is disabled on this deployment.{% endif %}
+        Borrowers and numbers are fixtures. The gate, audit log, and opt-out check are real.
+        {% if run and run.dry_run %}Only the dial is simulated.{% endif %}
+        {% if serverless %} Live calling is off on this host.{% endif %}
       </p>
     </aside>
   </div>
 </header>
 
 <main class="wrap">
-  {% if summary %}
-  <div class="stance">
-    <div class="stance-item" style="--tone: var(--red)">
-      <div class="big">$500&ndash;$1,500</div>
-      <div class="small">in statutory damages for each non-compliant collection call under the TCPA.</div>
-    </div>
-    <div class="stance-item rid-r3">
-      <div class="big">Operator liable</div>
-      <div class="small">When an AI agent dials wrong, the lender pays. The software does not.</div>
-    </div>
-    <div class="stance-item rid-r2">
-      <div class="big">{{ summary.blocked }} of {{ summary.accounts }}</div>
-      <div class="small">accounts in this batch refused before a single number was dialled.</div>
-    </div>
-    <p class="stance-line">CALL-E places the call. <b>Cleared to Call decides whether it may</b> &mdash; and leaves proof either way.</p>
-  </div>
-  {% endif %}
-
   <div class="toolbar">
-    <p class="eyebrow toolbar-label">Set evaluation time</p>
+    <p class="label">Evaluation time</p>
     <form method="post" action="/run">
       <div class="presets">
         {% set presets = [
-          ("2026-08-28T13:30:00Z", "Mid-morning", "US East — most clear", "morning"),
-          ("2026-08-28T02:00:00Z", "Late evening", "Time-window blocks", "evening"),
-          ("2026-08-28T16:00:00Z", "Midday", "Nationwide mix", "midday"),
-          ("", "Right now", "Current UTC", "now")
+          ("2026-08-28T13:30:00Z", "Mid-morning", "US East, mostly clear"),
+          ("2026-08-28T02:00:00Z", "Late evening", "Window blocks"),
+          ("2026-08-28T16:00:00Z", "Midday", "Mixed results"),
+          ("", "Right now", "Current UTC")
         ] %}
         {% set known = presets|map("first")|list %}
-        {% for value, title, hint, tone in presets %}
+        {% for value, title, hint in presets %}
           <input type="radio" name="now" id="p{{ loop.index }}" value="{{ value }}"
                  {% if now_input == value or (now_input not in known and loop.last) %}checked{% endif %} />
-          <label for="p{{ loop.index }}" class="preset-{{ tone }}">
+          <label for="p{{ loop.index }}">
             <span class="t">{{ title }}</span>
             <span class="s">{{ hint }}</span>
           </label>
         {% endfor %}
       </div>
       <div class="actions">
-        <button class="btn btn-primary" type="submit">Run compliance check</button>
-        <button class="btn btn-secondary" type="submit" name="fresh" value="1">Reset batch</button>
+        <button class="btn btn-primary" type="submit">Run batch</button>
+        <button class="btn btn-secondary" type="submit" name="fresh" value="1">Reset</button>
       </div>
     </form>
   </div>
 
-  <div class="pipeline">
-    <div class="pipe-step rid-r2">
-      <div class="n">01</div>
-      <div class="t">Load accounts</div>
-      <div class="s">Consent, timezone, balance</div>
-    </div>
-    <div class="pipe-step rid-r1">
-      <div class="n">02</div>
-      <div class="t">Pre-dial gate</div>
-      <div class="s">Rules 1–4 evaluated</div>
-    </div>
-    <div class="pipe-step rid-r3">
-      <div class="n">03</div>
-      <div class="t">Call or refuse</div>
-      <div class="s">Blocked accounts never dial</div>
-    </div>
-    <div class="pipe-step rid-r4">
-      <div class="n">04</div>
-      <div class="t">Audit log</div>
-      <div class="s">Hash-chained record</div>
-    </div>
+  <div class="steps">
+    <div class="step"><div class="n">01</div><div class="t">Load accounts</div><div class="s">Consent, timezone, balance</div></div>
+    <div class="step"><div class="n">02</div><div class="t">Pre-dial gate</div><div class="s">Rules 1 to 4</div></div>
+    <div class="step"><div class="n">03</div><div class="t">Call or refuse</div><div class="s">Blocked rows never dial</div></div>
+    <div class="step"><div class="n">04</div><div class="t">Audit log</div><div class="s">Hash-chained entry</div></div>
   </div>
 
   {% if summary %}
   <div class="stats">
-    <div class="stat batch">
-      <div class="k">In batch</div>
-      <div class="v">{{ summary.accounts }}</div>
-      <div class="d">Evaluated</div>
-    </div>
-    <div class="stat refused">
-      <div class="k">Refused</div>
-      <div class="v">{{ summary.blocked }}</div>
-      <div class="d">Never dialled</div>
-    </div>
-    <div class="stat cleared">
-      <div class="k">Cleared</div>
-      <div class="v">{{ summary.cleared }}</div>
-      <div class="d">Pre-dial pass</div>
-    </div>
-    <div class="stat optouts">
-      <div class="k">Opt-outs</div>
-      <div class="v">{{ summary.opt_outs }}</div>
-      <div class="d">Suppressed</div>
-    </div>
-    <div class="stat audit">
-      <div class="k">Audit</div>
-      <div class="v">{{ audit_total }}</div>
-      <div class="d">Chain entries</div>
-    </div>
+    <div class="stat"><div class="k">Batch</div><div class="v">{{ summary.accounts }}</div><div class="d">Accounts</div></div>
+    <div class="stat bad"><div class="k">Refused</div><div class="v">{{ summary.blocked }}</div><div class="d">Not dialled</div></div>
+    <div class="stat ok"><div class="k">Cleared</div><div class="v">{{ summary.cleared }}</div><div class="d">Pre-dial pass</div></div>
+    <div class="stat warn"><div class="k">Opt-outs</div><div class="v">{{ summary.opt_outs }}</div><div class="d">Suppressed</div></div>
+    <div class="stat"><div class="k">Audit</div><div class="v">{{ audit_total }}</div><div class="d">Entries</div></div>
   </div>
   {% endif %}
 </main>
@@ -912,110 +564,102 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <p class="eyebrow">Batch results</p>
+      <p class="label">Results</p>
       <h2 class="heading">Borrower decisions</h2>
-      <p>Each row is one account. Rules show pass or fail before any call is placed.</p>
+      <p>One row per account. Green rules passed; red failed.</p>
     </div>
 
-    <div class="decisions">
+    <div class="list">
     {% for record in records %}
       {% set result = record.result %}
       {% set acct = record.account %}
-      {% set demo_tags = {
-        "A-1002": "Time window",
-        "A-1003": "No consent",
-        "A-1004": "DNC list",
-        "A-1005": "Live opt-out"
+      {% set hints = {
+        "A-1002": "Shows call window block",
+        "A-1003": "Shows missing consent",
+        "A-1004": "Shows DNC block",
+        "A-1005": "Shows live opt-out"
       } %}
-      {% set first_fail = record.decision.rules|rejectattr("passed")|first %}
-      <article class="decision {% if not record.decision.allowed %}refused{% if first_fail %} rid-{{ first_fail.rule_id|lower }}{% endif %}{% elif result.opt_out %}optout rid-r5{% else %}cleared{% endif %}">
-        <div class="decision-bar"></div>
-        <div class="decision-inner">
-          <div class="decision-top">
-            <div class="decision-id">
+      <article class="item {% if not record.decision.allowed %}refused{% elif result.opt_out %}optout{% else %}cleared{% endif %}">
+        <div class="bar"></div>
+        <div class="item-body">
+          <div class="item-top">
+            <div class="item-id">
               <h3 class="name">{{ acct.display_name }}</h3>
               <div class="meta">
                 <span class="mono">{{ acct.masked_phone }}</span>
-                &nbsp;·&nbsp;{{ "%.2f"|format(acct.amount_due) }} {{ acct.currency }}
-                &nbsp;·&nbsp;{{ record.decision.local_time or "Unknown" }} local
+                &middot; {{ "%.2f"|format(acct.amount_due) }} {{ acct.currency }}
+                &middot; {{ record.decision.local_time or "Unknown" }} local
               </div>
-              {% if acct.account_id in demo_tags %}
-              <span class="scenario-tag">{{ demo_tags[acct.account_id] }} scenario</span>
+              {% if acct.account_id in hints %}
+              <span class="hint">{{ hints[acct.account_id] }}</span>
               {% endif %}
             </div>
             {% if record.decision.allowed %}
-              <span class="verdict allow">Cleared</span>
+              <span class="badge ok">Cleared</span>
             {% else %}
-              <span class="verdict block">Refused</span>
+              <span class="badge bad">Refused</span>
             {% endif %}
           </div>
 
-          {% if first_fail %}
-          <span class="why-pill">{{ first_fail.rule_id }} &middot; {% if first_fail.name == "call_window" %}Call window{% elif first_fail.name == "consent_on_file" %}Consent{% elif first_fail.name == "not_suppressed" %}Do-not-call list{% elif first_fail.name == "disclosure_ready" %}Disclosure{% else %}{{ first_fail.name|replace("_", " ")|title }}{% endif %}</span>
-          {% elif result.opt_out %}
-          <span class="why-pill">R5 &middot; Live opt-out</span>
-          {% endif %}
-          <p class="decision-verdict">
+          <p class="reason">
             {% if result.block_reason %}
               <strong>Cannot call.</strong>
               {% if result.block_reason == "OUTSIDE_CALL_WINDOW" %}
-                Outside the legal call window (8am–9pm in the recipient's timezone).
+                Outside the legal window (8am to 9pm local).
               {% elif result.block_reason == "NO_CONSENT" %}
                 No prior express consent on file.
               {% elif result.block_reason == "ON_SUPPRESSION_LIST" %}
                 Number is on the do-not-call list.
               {% elif result.block_reason == "MISSING_DISCLOSURE" %}
-                Required disclosure missing from the call script.
+                Required disclosure missing from script.
               {% else %}
                 {{ result.block_reason|replace("_", " ")|title }}.
               {% endif %}
               Never reached a dialer.
             {% elif result.opt_out %}
-              <strong>Call placed — opt-out during call.</strong>
-              Number suppressed immediately. Future batches will refuse.
+              <strong>Call completed.</strong> Recipient opted out. Number suppressed.
             {% else %}
-              <strong>Call placed — {{ result.outcome|replace("_", " ")|title }}.</strong>
-              {% if result.promise_date %} Payment promised for {{ result.promise_date }}.{% endif %}
+              <strong>Call completed.</strong> Outcome: {{ result.outcome|replace("_", " ")|title }}.
+              {% if result.promise_date %} Promised {{ result.promise_date }}.{% endif %}
               {% if record.error %} {{ record.error }}{% endif %}
             {% endif %}
           </p>
 
-          <div class="rule-matrix">
+          <div class="rules">
             {% for rule in record.decision.rules %}
-            <span class="rule-cell rid-{{ rule.rule_id|lower }} {% if rule.passed %}pass{% else %}fail{% endif %}" title="{{ rule.detail }}">
-              <span class="mark">{% if rule.passed %}✓{% else %}×{% endif %}</span>
-              {% if rule.name == "call_window" %}Call window
+            <span class="rule {% if rule.passed %}pass{% else %}fail{% endif %}" title="{{ rule.detail }}">
+              {% if rule.passed %}OK{% else %}NO{% endif %}
+              {% if rule.name == "call_window" %}Window
               {% elif rule.name == "consent_on_file" %}Consent
-              {% elif rule.name == "not_suppressed" %}Not on DNC
+              {% elif rule.name == "not_suppressed" %}DNC
               {% elif rule.name == "disclosure_ready" %}Disclosure
               {% else %}{{ rule.name|replace("_", " ")|title }}{% endif %}
             </span>
             {% endfor %}
             {% if record.transcript %}
-            <span class="rule-cell rid-r5 {% if result.opt_out %}fail{% else %}pass{% endif %}">
-              <span class="mark">{% if result.opt_out %}×{% else %}✓{% endif %}</span>
-              Live opt-out
+            <span class="rule {% if result.opt_out %}fail{% else %}pass{% endif %}">
+              {% if result.opt_out %}NO{% else %}OK{% endif %} Opt-out
             </span>
             {% elif record.decision.allowed %}
-            <span class="rule-cell rid-r5 pending"><span class="mark">—</span>Live opt-out</span>
+            <span class="rule wait">Opt-out</span>
             {% endif %}
           </div>
 
           {% if record.transcript %}
-          <details class="fold transcript" {% if record.revocation %}open{% endif %}>
-            <summary>Transcript · {{ record.transcript|length }} turns{% if record.revocation %} · opt-out detected{% endif %}</summary>
-            <div class="fold-body">
+          <details class="more" {% if record.revocation %}open{% endif %}>
+            <summary>Transcript ({{ record.transcript|length }} turns){% if record.revocation %}, opt-out detected{% endif %}</summary>
+            <div class="more-body">
               {% for turn in record.transcript %}
-              <div class="turn {% if record.revocation and loop.index0 == record.revocation.turn_index %}revoked{% endif %}">
+              <div class="turn {% if record.revocation and loop.index0 == record.revocation.turn_index %}hit{% endif %}">
                 <span class="who">{{ turn.speaker }}</span>
                 <span class="what">{{ turn.text }}</span>
               </div>
               {% endfor %}
               {% if record.revocation %}
-              <div class="turn verdict">
+              <div class="turn hit">
                 <span class="who">Gate</span>
                 <span class="what">
-                  Revocation matched &ldquo;{{ record.revocation.matched_phrase }}&rdquo;. Call ended,
+                  Matched &ldquo;{{ record.revocation.matched_phrase }}&rdquo;. Call ended,
                   outcome recorded as opt out, number suppressed.
                 </span>
               </div>
@@ -1024,27 +668,27 @@
           </details>
           {% endif %}
 
-          <details class="fold">
+          <details class="more">
             <summary>Technical details</summary>
-            <div class="fold-body">
-              <div class="row">Account <code>{{ acct.account_id }}</code> · TZ <code>{{ acct.timezone }}</code></div>
+            <div class="more-body">
+              <div class="row">Account <code>{{ acct.account_id }}</code>, TZ <code>{{ acct.timezone }}</code></div>
               {% if result.block_reason %}
-              <div class="row">Block code <code>{{ result.block_reason }}</code></div>
+              <div class="row">Block <code>{{ result.block_reason }}</code></div>
               {% for rule in record.decision.rules if not rule.passed %}
-              <div class="row">{{ rule.rule_id }} — {{ rule.detail }}</div>
+              <div class="row">{{ rule.rule_id }}: {{ rule.detail }}</div>
               {% endfor %}
               {% else %}
               <div class="row">Outcome <code>{{ result.outcome }}</code></div>
               {% endif %}
-              <div class="row">Audit ref <code>{{ result.audit_ref }}</code></div>
-              <div class="row">Disclosure {% if result.disclosure_given %}given{% else %}not given{% endif %}</div>
+              <div class="row">Audit <code>{{ result.audit_ref }}</code></div>
+              <div class="row">Disclosure {% if result.disclosure_given %}given{% else %}missing{% endif %}</div>
             </div>
           </details>
 
           {% if allow_live and record.decision.allowed %}
-          <div class="decision-foot">
+          <div class="item-foot">
             <form method="post" action="/call/{{ acct.account_id }}"
-                  onsubmit="return confirm('Place a REAL call to {{ acct.masked_phone }}? This spends CALL-E credits.');">
+                  onsubmit="return confirm('Place a real call to {{ acct.masked_phone }}? This uses CALL-E credits.');">
               <button class="btn btn-live" type="submit">Place live call</button>
             </form>
           </div>
@@ -1057,62 +701,61 @@
 </section>
 
 <section>
-  <div class="wrap ledger">
+  <div class="wrap split">
     <div class="panel">
-      <div class="panel-head">
+      <div class="panel-h">
         <h3 class="heading">Audit trail</h3>
-        <p>Append-only hash chain. Tampering is detectable.</p>
+        <p>Append-only hash chain.</p>
       </div>
       {% for entry in audit_entries %}
-      <div class="ledger-row">
-        <span class="ledger-mark {{ entry.decision }}"></span>
+      <div class="row-item">
+        <span class="mark {% if entry.decision == 'allow' %}ok{% elif entry.decision == 'block' %}bad{% endif %}"></span>
         <div>
           <div class="t">
             {% if entry.block_reason %}
-              Refused — {{ entry.block_reason|replace("_", " ")|title }}
+              Refused: {{ entry.block_reason|replace("_", " ")|title }}
             {% else %}
-              Cleared — {{ entry.outcome|replace("_", " ")|title }}
+              Cleared: {{ entry.outcome|replace("_", " ")|title }}
             {% endif %}
           </div>
-          <div class="s mono">{{ entry.account_id }} · {{ entry.audit_ref }}</div>
+          <div class="s mono">{{ entry.account_id }} &middot; {{ entry.audit_ref }}</div>
         </div>
       </div>
       {% endfor %}
-      <div class="panel-foot">
+      <div class="panel-f">
         {% if verification.ok %}
           {{ audit_total }} entries verified from genesis.
         {% else %}
-          Chain broken at entry {{ verification.first_bad_index }}: {{ verification.reason }}
+          Broken at entry {{ verification.first_bad_index }}: {{ verification.reason }}
         {% endif %}
       </div>
     </div>
 
     <div>
-      <div class="panel" style="margin-bottom:var(--space-xl)">
-        <div class="panel-head">
+      <div class="panel" style="margin-bottom:20px">
+        <div class="panel-h">
           <h3 class="heading">Do-not-call list</h3>
-          <p>Checked before every dial. Updated on opt-out.</p>
+          <p>Checked before every dial.</p>
         </div>
         {% for entry in suppressed %}
-        <div class="ledger-row">
-          <span class="ledger-mark warn"></span>
+        <div class="row-item">
+          <span class="mark warn"></span>
           <div>
             <div class="t mono">{{ entry.to_masked_dict().phone_e164 }}</div>
-            <div class="s">{{ entry.reason|replace("_", " ")|title }} · {{ entry.added_at[:10] }}</div>
+            <div class="s">{{ entry.reason|replace("_", " ")|title }} &middot; {{ entry.added_at[:10] }}</div>
           </div>
         </div>
         {% endfor %}
       </div>
 
       <div class="panel">
-        <div class="panel-head">
+        <div class="panel-h">
           <h3 class="heading">Policy</h3>
-          <p>{{ policy.policy_id }} v{{ policy.policy_version }} · {{ policy.window_label }}</p>
+          <p>{{ policy.policy_id }} v{{ policy.policy_version }} &middot; {{ policy.window_label }}</p>
         </div>
         {% for rule in policy.rules %}
-        <div class="policy-row rid-{{ rule.id|lower }}">
-          <span class="rule-tag">{{ rule.id }}</span>
-          <div class="t">{{ rule.name|replace("_", " ")|title }}</div>
+        <div class="policy-line">
+          <div class="t">{{ rule.id }} &middot; {{ rule.name|replace("_", " ")|title }}</div>
           <div class="s">{{ rule.requirement }}</div>
         </div>
         {% endfor %}
@@ -1122,12 +765,12 @@
 </section>
 
 <footer>
-  <div class="wrap footer-inner">
-    <div class="footer-brand">
-      <img class="logo footer-size" src="/static/logo.jpg" alt="" width="22" height="22" />
-      <span class="brand-wordmark">Cleared to Call</span>
+  <div class="wrap foot-row">
+    <div class="foot-brand">
+      <img class="logo" src="/static/logo.jpg" alt="" width="20" height="20" />
+      <span class="brand-name">Cleared to Call</span>
     </div>
-    <span>{{ policy.authorities|join(" · ") }}</span>
+    <span>{{ policy.authorities|join(" &middot; ") }}</span>
   </div>
 </footer>
 
