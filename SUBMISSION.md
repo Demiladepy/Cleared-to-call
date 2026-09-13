@@ -6,7 +6,7 @@ Everything needed to ship, plus the four things only you can supply.
 
 | Phase | State |
 | --- | --- |
-| 1. Core gate, audit chain, suppression, fixtures, tests | Done — 274 tests green |
+| 1. Core gate, audit chain, suppression, fixtures, tests | Done — 277 tests green |
 | 2. Dry-run batch loop + Agent Skill | Done — `validate_repository.py` passes, verified |
 | 3. CALL-E wiring (`plan_call` → `run_call` → `get_call_run`) | Run live: 3 calls dispatched, 4 bugs fixed, **none connected yet** |
 | 4. Demo app | Done — live at https://clearedtocall.vercel.app |
@@ -45,22 +45,23 @@ Until 1 and 2 exist, every command below is dry-run and spends nothing.
 
 ## The pull request
 
-Fork `CALLE-AI/awesome-phone-call-agents`, then:
+**Open:** https://github.com/CALLE-AI/awesome-phone-call-agents/pull/571
+
+Branch `feat/cleared-to-call-compliance-gate` on
+`Demiladepy/awesome-phone-call-agents`. `validate_repository.py` and
+`check_branch_name.py` both pass on that branch (re-checked locally).
+
+If you need to refresh the skill from this repo:
 
 ```bash
-git clone https://github.com/<your-user>/awesome-phone-call-agents.git
 cd awesome-phone-call-agents
-python scripts/create_branch.py feat/cleared-to-call-compliance-gate
-cp -r <this-repo>/skills/cleared-to-call skills/
+git switch feat/cleared-to-call-compliance-gate
+cp -r ../call-e/skills/cleared-to-call skills/
 python scripts/validate_repository.py
 git add skills/cleared-to-call
-git commit -m "feat(skills): add cleared-to-call compliance gate skill"
-git push -u origin feat/cleared-to-call-compliance-gate
+git commit --amend --no-edit
+git push --force-with-lease origin feat/cleared-to-call-compliance-gate
 ```
-
-The branch name and commit prefix already pass their
-`scripts/check_branch_name.py` and naming conventions. `validate_repository.py`
-passes with the skill in place — verified locally.
 
 **Only `skills/cleared-to-call/` goes in the PR.** The Python package, the demo
 and the fixtures stay in your own repo and get linked from the Devpost entry.
