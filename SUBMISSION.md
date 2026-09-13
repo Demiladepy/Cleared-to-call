@@ -44,21 +44,8 @@ section below. Add your unlisted YouTube URL last.
 
 ## The pull request
 
-**PR:** https://github.com/CALLE-AI/awesome-phone-call-agents/pull/571 (currently
-closed; reopen after the fix push below)
-
-The first push accidentally opened the PR with the whole repository tree. A clean
-branch with **12 files** (`skills/cleared-to-call/` only) is ready locally at
-`../awesome-phone-call-agents-fix`. Push it, then reopen the PR:
-
-```powershell
-cd c:\Users\User\Desktop\nibiru\awesome-phone-call-agents-fix
-git push --force-with-lease fork feat/cleared-to-call-compliance-gate
-gh pr reopen 571 -R CALLE-AI/awesome-phone-call-agents
-```
-
-Confirm the PR diff shows only `skills/cleared-to-call/` (~1,568 lines), not
-thousands of files.
+**Open:** https://github.com/CALLE-AI/awesome-phone-call-agents/pull/574 (12 files,
+`skills/cleared-to-call/` only).
 
 **Only `skills/cleared-to-call/` goes in the PR.** The Python package, the demo
 and the fixtures stay in your own repo and get linked from the Devpost entry.

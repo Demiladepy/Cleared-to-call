@@ -281,7 +281,7 @@ externally.
 | | |
 | --- | --- |
 | **Live demo** | https://clearedtocall.vercel.app |
-| **Agent Skill PR** | https://github.com/CALLE-AI/awesome-phone-call-agents/pull/571 |
+| **Agent Skill PR** | https://github.com/CALLE-AI/awesome-phone-call-agents/pull/574 |
 | **Video shoot** | [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md) |
 | **Devpost copy** | [`DEVPOST.md`](DEVPOST.md) |
 | **Full pack** | [`SUBMISSION.md`](SUBMISSION.md) |

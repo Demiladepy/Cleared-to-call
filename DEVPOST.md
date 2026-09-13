@@ -21,7 +21,7 @@ The public demo runs a batch of fictional accounts: three are refused with named
 | Field | Value |
 | --- | --- |
 | **GitHub repo** | https://github.com/Demiladepy/Cleared-to-call |
-| **Upstream skill PR** | https://github.com/CALLE-AI/awesome-phone-call-agents/pull/571 |
+| **Upstream skill PR** | https://github.com/CALLE-AI/awesome-phone-call-agents/pull/574 |
 | **Live demo** | https://clearedtocall.vercel.app |
 | **Demo video** | `[VIDEO_URL]` (unlisted YouTube) |
 
