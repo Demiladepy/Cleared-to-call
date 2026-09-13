@@ -45,7 +45,7 @@ Three pieces, in dependency order:
 | | |
 | --- | --- |
 | **`skills/cleared-to-call/`** | The portable Agent Skill. This is the contribution: `SKILL.md`, the policy and safety references, and a self-contained Node implementation of the gate. Installs into any Agent Skills host and wraps any outbound CALL-E use case. |
-| **`cleared/`** | A small Python package holding the same gate, the hash-chained audit log, the suppression list and the batch runner. Pure predicates, no I/O, 274 tests. |
+| **`cleared/`** | A small Python package holding the same gate, the hash-chained audit log, the suppression list and the batch runner. Pure predicates, no I/O, 277 tests. |
 | **`demo/`** | A thin FastAPI view that runs the batch over fixtures and shows every decision, refusal reason, transcript and audit entry. A demo, not a product. |
 
 The Node and Python gates read **the same `policy.json`**, and a test runs both
@@ -253,7 +253,7 @@ skills/cleared-to-call/
   references/      policy.md, safety.md, examples.md
   scripts/         self-contained Node gate + helpers
   assets/          policy.json (identical to the package copy, checked by a test)
-tests/             274 tests: rules, audit chain, revocation, runner, parity, demo
+tests/             277 tests: rules, audit chain, revocation, runner, parity, demo
 ```
 
 ## Scope and limits
@@ -275,6 +275,16 @@ Roadmap, in rough order of value: state-level call-window and frequency rules;
 EU/UK and APAC policy files; a reassigned-number check before R2; consent
 provenance in the audit entry; signed audit anchors so the chain can be attested
 externally.
+
+## Submission
+
+| | |
+| --- | --- |
+| **Live demo** | https://clearedtocall.vercel.app |
+| **Agent Skill PR** | https://github.com/CALLE-AI/awesome-phone-call-agents/pull/571 |
+| **Video shoot** | [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md) |
+| **Devpost copy** | [`DEVPOST.md`](DEVPOST.md) |
+| **Full pack** | [`SUBMISSION.md`](SUBMISSION.md) |
 
 ## License
 

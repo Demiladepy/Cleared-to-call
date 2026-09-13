@@ -13,18 +13,29 @@ Everything you can run locally to validate the integration before spending credi
 - **preflight** — gate + `plan_call`, no credit spent
 - **parse-run** — runs extractors against `tests/data/call_run_sample.json`
 
-## Nigeria (+234) numbers
+## India (+91) numbers (supported)
 
-CALL-E recognizes Nigerian destinations but **does not dial them** on the
-`openagent_oauth` channel. Preflight returns `ready_to_run: false` with a block
-reason naming supported regions (US, SG, AU, IN — English).
+CALL-E lists **India / English** as a supported destination. For your Indian test
+number:
 
-That was one account. On another, NG calls planned and dispatched, then came back
-`DECLINED` with zero duration: the carrier rejected the international caller ID and
-the phone never rang. See B1 in `TEAMMATE-TASKS.md`. Neither produced a connected
-call, so use a US, IN, SG or AU number for the validating call.
+1. Copy `fixtures/demo-live.example.json` → `fixtures/demo-live.json`
+2. Set `A-9001` to the real `+91…` number and `"timezone": "Asia/Kolkata"`
+3. Leave `consent_on_file: false` until the person agrees; the gate will refuse
+   with `NO_CONSENT` until you set consent and a timestamp (correct behaviour)
+4. Use `--region IN` everywhere (preflight, CLI run, demo)
 
-The gate still works with `Africa/Lagos` timezone. Only the provider dial is blocked.
+```powershell
+.venv\Scripts\python.exe -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region IN
+```
+
+Record the live call only between **08:00 and 21:00 IST**. See
+[`VIDEO-SHOOT.md`](VIDEO-SHOOT.md).
+
+## Nigeria (+234) numbers (not reliable)
+
+Nigeria was tried during development: either `ready_to_run: false` at plan time,
+or `DECLINED` with zero duration when the carrier rejected international caller ID.
+Use US, IN, SG, or AU for the validating call instead.
 
 ## Placing one live call
 

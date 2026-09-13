@@ -10,58 +10,55 @@ Everything needed to ship, plus the four things only you can supply.
 | 2. Dry-run batch loop + Agent Skill | Done — `validate_repository.py` passes, verified |
 | 3. CALL-E wiring (`plan_call` → `run_call` → `get_call_run`) | Run live: 3 calls dispatched, 4 bugs fixed, **none connected yet** |
 | 4. Demo app | Done — live at https://clearedtocall.vercel.app |
-| 5. Submission | Needs you: see below |
+| 5. Submission | You: video + Devpost (see below) |
 
-## Blocked on you
+## Done (engineering)
 
-1. **CALL-E account + CLI login.** `npm install -g @call-e/cli && calle auth login`.
-   The live caller reads the CLI token cache; there is no place to paste a key.
-2. **One call that connects.** It is the last thing standing between this and a
-   finished submission: the opt-out beat in the video, and B1's check that
-   CALL-E's real speaker labels map onto `agent` / `recipient`. Run preflight
-   first; it spends no credits and now also reports whether the plan's
-   destination can be checked:
+- 277 tests green, demo live at https://clearedtocall.vercel.app
+- CALL-E CLI wired; preflight, capture-run, parse-run commands work
+- Agent Skill ready; upstream PR needs one force-push (see below)
+- Devpost copy ready in [`DEVPOST.md`](DEVPOST.md)
+- Shoot checklist in [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md)
 
-   ```bash
-   python -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region US
-   ```
+## Left for you (two items)
 
-   Nigeria has not produced a connected call on either account that tried it.
-   One account got `ready_to_run: false` with a reason naming the supported
-   regions (US, SG, AU, IN — English). The other got NG calls planned and
-   dispatched, then `DECLINED` with zero duration because the carrier rejected
-   CALL-E's international caller ID. A local NG line has been requested on the
-   CALL-E Discord. Until then, the practical route is a consenting person with a
-   US, IN, SG or AU number.
-3. **The jurisdiction is US federal (TCPA / FDCPA / Reg F).** The test number's
-   country and the account's IANA timezone can differ — say so in the video.
-   The gate reads `account.timezone` for rule 1, not the area code. If the real
-   target market is not the US, rule 1's window and rule 2's consent basis both
-   change and `cleared/policy.json` needs replacing.
-4. **Your deadline**, which decides how much of the video is re-shot versus
-   taken in one pass.
+### 1. Demo video (~3 min)
 
-Until 1 and 2 exist, every command below is dry-run and spends nothing.
+See [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md). Most of the video uses the public demo
+with no phone. The live opt-out beat needs:
+
+- **Prior express consent** on file for `A-9001` (the gate will refuse
+  `NO_CONSENT` until you set `consent_on_file: true` and a timestamp after they
+  agree)
+- **08:00–21:00 in the recipient's timezone** (`Asia/Kolkata` for India)
+- **`--region IN`** for an Indian number
+- Preflight showing `ready_to_run: true` before spending a credit
+
+Say in the video that the policy encodes US federal rules while your test
+recipient is in India; the gate reads `account.timezone`, not the country code.
+
+### 2. Devpost form
+
+Copy fields from [`DEVPOST.md`](DEVPOST.md). Paste the feedback survey from the
+section below. Add your unlisted YouTube URL last.
 
 ## The pull request
 
-**Open:** https://github.com/CALLE-AI/awesome-phone-call-agents/pull/571
+**PR:** https://github.com/CALLE-AI/awesome-phone-call-agents/pull/571 (currently
+closed; reopen after the fix push below)
 
-Branch `feat/cleared-to-call-compliance-gate` on
-`Demiladepy/awesome-phone-call-agents`. `validate_repository.py` and
-`check_branch_name.py` both pass on that branch (re-checked locally).
+The first push accidentally opened the PR with the whole repository tree. A clean
+branch with **12 files** (`skills/cleared-to-call/` only) is ready locally at
+`../awesome-phone-call-agents-fix`. Push it, then reopen the PR:
 
-If you need to refresh the skill from this repo:
-
-```bash
-cd awesome-phone-call-agents
-git switch feat/cleared-to-call-compliance-gate
-cp -r ../call-e/skills/cleared-to-call skills/
-python scripts/validate_repository.py
-git add skills/cleared-to-call
-git commit --amend --no-edit
-git push --force-with-lease origin feat/cleared-to-call-compliance-gate
+```powershell
+cd c:\Users\User\Desktop\nibiru\awesome-phone-call-agents-fix
+git push --force-with-lease fork feat/cleared-to-call-compliance-gate
+gh pr reopen 571 -R CALLE-AI/awesome-phone-call-agents
 ```
+
+Confirm the PR diff shows only `skills/cleared-to-call/` (~1,568 lines), not
+thousands of files.
 
 **Only `skills/cleared-to-call/` goes in the PR.** The Python package, the demo
 and the fixtures stay in your own repo and get linked from the Devpost entry.
@@ -135,7 +132,7 @@ node skills/cleared-to-call/scripts/validate-input.mjs \
   --file skills/cleared-to-call/assets/example-accounts.json
 ```
 
-Full test suite (274 tests) lives in the companion repo, including a parity test
+Full test suite (277 tests) lives in the companion repo, including a parity test
 that runs the Node gate and a Python implementation over the same fixtures and
 compares every verdict.
 ```

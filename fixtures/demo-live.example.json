@@ -1,6 +1,6 @@
 {
   "batch_id": "demo-live",
-  "note": "Recording batch. Row A-9001 is the operator's own number for the one live call. Replace the placeholder with your real E.164 number. This file is gitignored: never commit it.",
+  "note": "Recording batch. A-9001 is the live-call row: your real E.164, the recipient's IANA timezone, and consent_on_file only after they agree. Copy to fixtures/demo-live.json (gitignored). India: use Asia/Kolkata and --region IN.",
   "accounts": [
     {
       "account_id": "A-1001",
@@ -82,12 +82,12 @@
     {
       "account_id": "A-9001",
       "display_name": "Operator test",
-      "phone_e164": "+2340000000000",
-      "timezone": "Africa/Lagos",
+      "phone_e164": "+919999999999",
+      "timezone": "Asia/Kolkata",
       "amount_due": 145.0,
       "currency": "USD",
-      "consent_on_file": true,
-      "consent_timestamp": "2026-08-01T09:00:00Z",
+      "consent_on_file": false,
+      "consent_timestamp": null,
       "creditor_name": "Northbridge Lending"
     }
   ]
