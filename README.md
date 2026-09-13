@@ -123,15 +123,18 @@ python -m cleared.cli run --now 2026-08-28T13:30:00Z --fresh
 
 ```text
 ACCOUNT   DECISION REASON / OUTCOME       DISCLOSED  AUDIT
-A-1001    ALLOW    promise_to_pay         yes        aud_188921a1
-A-1002    BLOCK    OUTSIDE_CALL_WINDOW    -          aud_78d57285
-A-1003    BLOCK    NO_CONSENT             -          aud_27087e66
-A-1004    BLOCK    ON_SUPPRESSION_LIST    -          aud_68e9f7a9
-A-1005    ALLOW    opt_out                yes        aud_faf58034
-A-1006    ALLOW    no_answer              -          aud_6d925ab8
-A-1007    ALLOW    dispute                yes        aud_6fa076e8
+A-1001    ALLOW    promise_to_pay         yes        aud_26cff37a
+A-1002    BLOCK    OUTSIDE_CALL_WINDOW    -          aud_8ce3400a
+A-1003    BLOCK    NO_CONSENT             -          aud_02ab9627
+A-1004    BLOCK    ON_SUPPRESSION_LIST    -          aud_e95ff827
+A-1005    ALLOW    opt_out                yes        aud_98654e5a
+A-1006    ALLOW    no_answer              -          aud_edfd6351
+A-1007    ALLOW    dispute                yes        aud_80358dda
 
 7 account(s): 3 blocked, 4 called, 1 opt-out(s).
+  blocked - NO_CONSENT: 1
+  blocked - ON_SUPPRESSION_LIST: 1
+  blocked - OUTSIDE_CALL_WINDOW: 1
   opt-out - A-1005 said "Stop calling me. I do not want these calls." -> number suppressed
 
 Audit chain: verified (7 entries).
@@ -187,8 +190,14 @@ npm install -g @call-e/cli
 calle auth login
 pip install -e ".[live]"
 
+python -m cleared.cli preflight --account-id A-1001 --region US   # free: gate + plan, no dial
 python -m cleared.cli run --execute --account-id A-1001
 ```
+
+`preflight` runs the gate and `plan_call` without dialling, and reports whether
+the plan's destination can be checked against the cleared number. CALL-E echoes
+the destination masked, so `--execute` compares its last four digits and refuses
+a plan that names no destination unless you pass `--allow-unverified-destination`.
 
 `DRY_RUN=1` in the environment refuses `--execute` outright.
 
@@ -210,12 +219,17 @@ One append-only JSONL line per decision, blocked or called. Each line carries
 the hash of the line before it:
 
 ```json
-{"account_id":"A-1002","audit_ref":"aud_78d57285","block_reason":"OUTSIDE_CALL_WINDOW",
- "decision":"block","dry_run":true,"hash":"91fae5a8...","outcome":"not_called",
+{"account_id":"A-1002","audit_ref":"aud_8ce3400a","block_reason":"OUTSIDE_CALL_WINDOW",
+ "decision":"block","dry_run":true,"hash":"f1a1f08f...","outcome":"not_called",
  "phone_masked":"+1******1235","policy_id":"us-federal-collections","policy_version":"1.0.0",
- "prev_hash":"bc97e26d...","rules_evaluated":{"R1":"fail","R2":"pass","R3":"pass","R4":"pass"},
+ "prev_hash":"41f9160f...","provider_ref":null,
+ "rules_evaluated":{"R1":"fail","R2":"pass","R3":"pass","R4":"pass"},
  "timestamp":"2026-08-28T13:30:00+00:00"}
 ```
+
+A live call also writes `intent` before the provider is touched and `dispatched`
+once a run id exists, carried in `provider_ref`. If the process dies mid-call, the
+next run recovers the outcome from the provider instead of dialling again.
 
 Editing, deleting, or reordering any entry breaks the chain from that point on,
 and `verify` reports the first bad index. Recomputing the tampered entry's own
