@@ -273,16 +273,15 @@ def test_the_web_dependencies_are_installed_not_optional():
 
 
 def test_icon_ligature_names_cannot_leak_when_the_font_fails(client):
-    """Material Symbols renders icon names as text until its font arrives.
+    """The demo must not depend on Material Symbols ligature icon names.
 
-    Without a guard, a blocked CDN turns all 66 icons into the words
-    "play_arrow", "verified_user" and so on, across the whole page.
+    Those fonts render the icon name as visible text when the CDN is blocked.
+    The UI uses text, unicode marks, and CSS instead — no icon font to fail.
     """
     body = client.get("/").text
-    assert "icons-pending" in body, "no guard class is applied before the font loads"
-    assert ".icons-pending .icon { visibility: hidden; }" in body
-    assert ".icons-failed .icon { display: none; }" in body
-    assert 'document.fonts.check' in body, "the guard must verify the font actually loaded"
+    for ligature_name in ("play_arrow", "verified_user", "expand_more", "restart_alt"):
+        assert ligature_name not in body, f"ligature name leaked into markup: {ligature_name}"
+    assert "Material Symbols" not in body
 
 
 def test_the_page_still_tells_the_story_without_any_icons(client):

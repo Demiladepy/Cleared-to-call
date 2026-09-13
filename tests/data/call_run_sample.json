@@ -1,0 +1,25 @@
+{
+  "_note": "Synthetic get_call_run fixture for extractor tests. Replace with capture-run output after a live call.",
+  "_scenario": "opt_out during call — recipient says stop calling",
+  "run_id": "run_sample_opt_out_001",
+  "status": "COMPLETED",
+  "post_summary": "Outcome: opt_out. Recipient asked to stop calling during the account-servicing call.",
+  "structured_result": {
+    "outcome": "opt_out",
+    "promise_date": ""
+  },
+  "transcript": [
+    {
+      "role": "BOT",
+      "text": "Hello, this is an automated assistant calling on behalf of Northbridge Lending about your account ending 9001. This is an attempt to collect a debt, and any information obtained will be used for that purpose. If you would like us to stop calling, say stop calling and I will end this call and remove your number."
+    },
+    {
+      "role": "USER",
+      "text": "Stop calling me. I do not want these calls."
+    },
+    {
+      "role": "BOT",
+      "text": "Understood. I will remove your number and you will not receive further calls from us. Goodbye."
+    }
+  ]
+}

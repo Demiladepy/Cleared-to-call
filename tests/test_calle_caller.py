@@ -14,15 +14,21 @@ import pytest
 from cleared.callers import CallerError, build_call_metadata, build_plan_arguments
 from cleared.calle_caller import (
     extract_outcome,
+    extract_plan_feedback,
     extract_promise_date,
     extract_status,
+    extract_structured_result,
     extract_summary,
     extract_transcript,
+    normalize_tool_result,
     plan_targets_only,
     first_value,
+    resolve_call_outcome,
+    resolve_calle_command,
     resolve_server_url,
+    sanitize_call_run,
     token_cache_path,
-    unwrap_tool_result,
+    normalize_tool_result,
 )
 from cleared.revocation import scan_transcript
 from cleared.schema import TranscriptTurn
@@ -70,6 +76,41 @@ def test_a_plan_with_an_extra_number_anywhere_is_refused():
 
 def test_a_plan_with_no_numbers_is_not_blocked():
     plan_targets_only({"structuredContent": {"ready_to_run": True}}, "+15550101234")
+
+
+def test_plan_feedback_surfaces_an_unsupported_destination():
+    plan = {
+        "ready_to_run": False,
+        "confirm_summary": "Nigeria is not supported.",
+        "clarifying_questions": ["Use a supported region instead."],
+        "questions": [
+            {
+                "options": [
+                    {"label": "US — English", "value": "US|English"},
+                    {"label": "IN — English", "value": "IN|English"},
+                ]
+            }
+        ],
+    }
+    feedback = extract_plan_feedback(plan)
+    assert feedback["block_reason"] == "Nigeria is not supported."
+    assert feedback["supported_region_language"] == ["US — English", "IN — English"]
+
+
+def test_normalize_tool_result_prefers_structured_content():
+    class Stub:
+        structured_content = {"ready_to_run": True, "run_id": "r1"}
+        is_error = False
+
+    assert normalize_tool_result(Stub()) == {"ready_to_run": True, "run_id": "r1"}
+
+
+def test_resolve_calle_command_finds_the_cli_on_path(monkeypatch):
+    monkeypatch.setattr(
+        "cleared.calle_caller.shutil.which",
+        lambda name: "C:\\npm\\calle.cmd" if name == "calle" else None,
+    )
+    assert resolve_calle_command(None) == "C:\\npm\\calle.cmd"
 
 
 # Response parsing
@@ -181,6 +222,52 @@ def test_a_promise_date_is_extracted_only_for_a_promise():
     assert extract_promise_date("Outcome: dispute", ()) is None
 
 
+def test_structured_result_is_preferred_over_prose():
+    payload = {
+        "structured_result": {"outcome": "promise_to_pay", "promise_date": "2026-09-12"},
+        "post_summary": "Outcome: dispute",
+    }
+    transcript = ()
+    outcome, promise_date, source = resolve_call_outcome(
+        payload, extract_summary(payload), transcript, "COMPLETED"
+    )
+    assert outcome == "promise_to_pay"
+    assert promise_date == "2026-09-12"
+    assert source == "structured"
+
+
+def test_structured_unknown_outcomes_fall_back_to_prose():
+    payload = {
+        "structured_result": {"outcome": "unknown", "promise_date": ""},
+        "post_summary": "Outcome: refusal",
+    }
+    outcome, _, source = resolve_call_outcome(
+        payload, extract_summary(payload), (), "COMPLETED"
+    )
+    assert outcome == "refusal"
+    assert source == "inferred"
+
+
+def test_extract_structured_result_reads_nested_shapes():
+    payload = {"result": {"outcome": "no_answer", "promise_date": ""}}
+    assert extract_structured_result(payload) == {
+        "outcome": "no_answer",
+        "promise_date": "",
+    }
+
+
+def test_sanitize_call_run_masks_numbers_and_redacts_tokens():
+    payload = {
+        "to_phone": "+15550101234",
+        "confirm_token": "secret-token",
+        "transcript": [{"role": "USER", "text": "Call +15550109999 back"}],
+    }
+    sanitized = sanitize_call_run(payload)
+    assert "+15550101234" not in json.dumps(sanitized)
+    assert "+15550109999" not in json.dumps(sanitized)
+    assert sanitized["confirm_token"] == "<redacted>"
+
+
 # The call task handed to CALL-E
 
 
@@ -241,34 +328,34 @@ class FakeToolResult:
 
 def test_the_structured_content_of_a_tool_result_is_unwrapped():
     result = FakeToolResult(structured_content={"plan_id": "p-1", "ready_to_run": True})
-    assert unwrap_tool_result(result) == {"plan_id": "p-1", "ready_to_run": True}
+    assert normalize_tool_result(result) == {"plan_id": "p-1", "ready_to_run": True}
 
 
 def test_a_tool_result_with_only_text_content_is_parsed_as_json():
     result = FakeToolResult(content=[FakeTextContent('{"plan_id": "p-2", "ready_to_run": true}')])
-    assert unwrap_tool_result(result) == {"plan_id": "p-2", "ready_to_run": True}
+    assert normalize_tool_result(result) == {"plan_id": "p-2", "ready_to_run": True}
 
 
 def test_a_plain_dict_is_returned_unchanged():
-    assert unwrap_tool_result({"plan_id": "p-3"}) == {"plan_id": "p-3"}
+    assert normalize_tool_result({"plan_id": "p-3"}) == {"plan_id": "p-3"}
 
 
 def test_unparseable_text_content_does_not_crash_the_unwrap():
     result = FakeToolResult(content=[FakeTextContent("not json at all")])
-    unwrap_tool_result(result)
+    normalize_tool_result(result)
 
 
 def test_ready_to_run_is_readable_through_a_real_tool_result():
     result = FakeToolResult(structured_content={"ready_to_run": True, "plan_id": "p-4"})
-    assert first_value(unwrap_tool_result(result), ("ready_to_run",)) is True
-    assert first_value(unwrap_tool_result(result), ("plan_id",)) == "p-4"
+    assert first_value(normalize_tool_result(result), ("ready_to_run",)) is True
+    assert first_value(normalize_tool_result(result), ("plan_id",)) == "p-4"
 
 
 def test_a_wrong_number_inside_a_real_tool_result_is_still_refused():
     """The safety check must not pass vacuously just because the payload is an object."""
     result = FakeToolResult(structured_content={"to_phones": ["+15550109999"]})
     with pytest.raises(CallerError, match="other than the"):
-        plan_targets_only(unwrap_tool_result(result), "+15550101234")
+        plan_targets_only(normalize_tool_result(result), "+15550101234")
 
 
 # B2: what plan_call actually accepts

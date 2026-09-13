@@ -39,120 +39,99 @@ skill installed, and the whole loop runs in dry run with no credentials.
 
 ## Before submission
 
-### B1 — Verify live response parsing against a real call — **blocking**
+### B1 — Verify live response parsing against a real call — **blocking, half done**
 
-**Where:** `cleared/calle_caller.py:197` `extract_transcript`, `:213`
-`extract_outcome`, `:228` `extract_promise_date`
-
-**Problem.** These read the outcome out of free text with regexes over
-`post_summary` and the agent's turns. They were written against the shapes
-documented in `apps/python/batch-runner`, and have never seen a real
-`get_call_run` payload. If CALL-E returns a different shape, a real
-`promise_to_pay` silently degrades to `refusal`, and the demo's structured
-result is wrong on camera.
-
-**Do.**
-
-1. Place one real call (`cleared.cli run --execute --account-id A-9001 --region NG`).
-2. Save the raw `get_call_run` response to `tests/data/call_run_sample.json`,
-   with the phone number masked and any token stripped.
-3. Add tests that feed that payload through `extract_*` and assert the outcome,
-   the promise date, and the speaker labels on the transcript.
-4. Fix the extractors against reality.
+**Where:** `cleared/calle_caller.py` extractors; `tests/data/call_run_declined.json`
+(real, captured) and `tests/data/call_run_sample.json` (synthetic)
 
 **Acceptance.** A test proves the real payload shape parses correctly, and
 `normalize_speaker` maps CALL-E's actual speaker labels onto `agent` /
 `recipient`. That second one matters most: `scan_transcript` only reads
 recipient turns, so a mislabelled speaker means a **missed opt-out**.
 
-**Half done.** Three live calls were placed. The captured payload is committed
-at `tests/data/call_run_declined.json` and `tests/test_real_payloads.py` runs
-the extractors over it. Confirmed against real bytes: `extract_status` reads the
+**Done.** Three live calls were placed. The captured payload is committed at
+`tests/data/call_run_declined.json` and `tests/test_real_payloads.py` runs the
+extractors over it. Confirmed against real bytes: `extract_status` reads the
 top-level `status`, `extract_summary` finds `result.post_summary`, and
-`extract_transcript` returns empty when `result.transcript` is null.
+`extract_transcript` returns empty when `result.transcript` is null. There are
+two ways to capture the next one, and both write through `sanitize_call_run`:
 
-Three bugs came out of it, all fixed:
+- `cleared.cli run --execute --capture-payload PATH` saves the payload during a
+  batch run;
+- `cleared.cli capture-run --run-id <id>` fetches a run that already happened,
+  and `parse-run` runs the extractors over a saved file (see `LIVE-TEST.md`).
 
-- `_report_from` kept only the summary and status and dropped the payload, so a
-  live call could never leave evidence behind. There is now a `capture_path` on
-  `CalleCaller` and a `run --execute --capture-payload PATH` flag, writing the
-  payload through `redact_payload`.
+Three bugs came out of the live calls, all fixed:
+
 - **fastmcp 3.x returns a `CallToolResult` object with no `model_dump`**, and
-  `_call_tool` tested for exactly that method. Every extractor read `None` off
-  the raw object and `--execute` could never get past `plan_call did not return
-  ready_to_run=true`. The whole live path was dead. `unwrap_tool_result` now
-  reads `structured_content`, then JSON in `content[i].text`, then `model_dump`.
-  Worse, `plan_targets_only` saw no numbers in an object it could not read, so
-  the wrong-number check passed vacuously; nothing was mis-dialled only because
-  `ready_to_run` aborted first.
+  `_call_tool` tested for exactly that method, so every extractor read `None`
+  and `--execute` could not get past `plan_call did not return
+  ready_to_run=true`. `normalize_tool_result` now reads `structured_content`,
+  then `data`, then JSON in `content[i].text`, then `model_dump`. The text path
+  matters: without it, a server that answers only in text makes a dialable plan
+  look like `ready_to_run: false`. The wrong-number check had also been passing
+  vacuously, since it could see no numbers in an object it could not read.
 - `DECLINED` mapped to `refusal`, so a call that never rang was recorded as the
   consumer refusing to pay. Every provider status now maps to `no_answer`: a
   status says whether the call connected, never what was said on it.
+- `_report_from` kept only the summary and status, so a live call left no
+  evidence. Fixed by the two capture paths above.
 
 **Still open, and it is the acceptance criterion.** `normalize_speaker` has
 never seen a real speaker label, because no call has connected. `AGENT_LABELS`
 and `RECIPIENT_LABELS` remain guesses, and being wrong there is a silently
 missed opt-out.
 
-**Why no call connects.** Three attempts across two Nigerian carriers (0915 and
-0704) all returned `DECLINED` with `duration_seconds: 0`, `hangup_type:
-ByCallee`, and identical start and end times. The phone never rang. CALL-E's
-docs explain it: NG is reachable only over their *international* lines, which
-are "primarily intended for testing", and international caller ID into Nigeria
-is routinely rejected at the carrier. The documented fix is to ask the CALL-E
-team to enable a local line for the destination country.
+**Nigeria: two observations that disagree.** Recorded as seen, not reconciled:
 
-**Do next.** Either get a local NG line enabled, or place the one validating
-call to a number in a region served by a local line. The speaker labels are not
-region-specific, so any connected call anywhere closes this.
+- On one account, `preflight` against `+234` returned `ready_to_run: false` with
+  a block reason naming the supported regions (US, SG, AU, IN — English).
+- On another, three calls across two Nigerian carriers (0915 and 0704) planned
+  and dispatched with real run ids, then came back `DECLINED` with
+  `duration_seconds: 0`, `hangup_type: ByCallee`, and identical start and end
+  times. The phone never rang. CALL-E's docs say NG is reachable only over their
+  *international* lines, "primarily intended for testing", and international
+  caller ID into Nigeria is routinely rejected at the carrier.
 
-### B2 — Replace outcome scraping with a declared result schema — **NOT POSSIBLE**
+The likeliest explanation is that the two accounts have different lines enabled,
+not that either reading is wrong. Either way, neither produces a connected call.
 
-**The premise is false against the deployed server.** `plan_call` has no
-`result_schema` parameter. Sending one is rejected at create time with
+**Do next.** Place the one validating call to a number in a region served by a
+local line (US, IN, SG or AU), or ask the CALL-E team to enable a local NG line.
+Speaker labels are not region-specific, so any connected call anywhere closes
+this. Capture it, commit it next to the declined sample, and add the speaker
+assertions to `tests/test_real_payloads.py`.
+
+### B2 — Declared result schema — **not possible on MCP; structured fields read when present**
+
+**Where:** `cleared/callers.py` `build_plan_arguments`,
+`cleared/calle_caller.py` `resolve_call_outcome`, `CallReport.raw`
+
+**The brief's premise is false on this channel.** `plan_call` has no
+`result_schema` parameter. Sending one fails at create time with
 `1 validation error for call[plan_call] / result_schema / Unexpected keyword
 argument`, and because an unknown key fails the call rather than being ignored,
-attempting this breaks every live run.
-
-Introspecting the live tool gives its entire surface, and there is no field for
-a declared result anywhere on it:
+attempting it breaks every live run. Declaring a schema at plan time appears to
+be REST-only. Introspecting the live MCP tool gives its entire surface:
 
 ```text
 plan_id  to_phones  region  language  goal
 scheduled_at  retry_confirmation_action  user_input  ttl_seconds
 ```
 
-`tests/test_calle_caller.py` now pins that set, so a hopeful key cannot silently
-break the live path again. Re-check the premise against whatever CALL-E build
-`apps/python/leash`'s author was using before anyone tries this again; if a
-newer server does accept it, the constraints below still apply.
+`tests/test_calle_caller.py` pins that set, so a hopeful key cannot silently
+break the live path again.
 
-The original brief is kept below, unchanged, for whoever revisits it.
+**What is done instead.** When `get_call_run` includes a `structured_result`,
+the extractors use it and record `outcome_source: structured`; otherwise they
+infer from prose and record `outcome_source: inferred`. Rule 5 re-scans the
+transcript independently either way. Note that the only committed sample with a
+`structured_result` is the synthetic one; the real declined payload has none, so
+whether CALL-E ever returns it on MCP is still unverified.
 
-### B2 (original brief) — Replace outcome scraping with a declared result schema
-
-**Where:** `cleared/callers.py` `build_plan_arguments`, `cleared/script.py`
-`CALL_GOAL_TEMPLATE`
-
-**Problem.** We ask the agent to say the outcome in prose and then pattern-match
-it. CALL-E supports a `result_schema` on the call, which makes the outcome a
-returned field instead of a guess.
-
-**Constraints** (from `apps/python/leash/README.md` in the CALL-E repo, verified
-live by that author): the schema subset is flat scalars only. `oneOf` is
-rejected at create time, and so is a nullable type like `["string","null"]`.
-Use string enums with an explicit "no clear answer" member rather than nulls.
-Anything that survives create but fails extraction nulls the **entire** result
-object, so keep nothing load-bearing nested.
-
-**Do.** Declare `outcome` (enum: the six values in `cleared/schema.py:OUTCOMES`)
-and `promise_date` (string, `""` when absent). Prefer the returned field, keep
-the regex path as a fallback, and record which one was used.
-
-**Acceptance.** `plan_call` accepts the schema, and a live call returns an
-outcome that was never inferred from prose. Rule 5 stays independent: the
-transcript re-scan in `cleared/runner.py:process_account` must keep running even
-when the schema reports no opt-out.
+The original B2 brief, with the schema-subset constraints from
+`apps/python/leash/README.md`, is in this file's git history for whoever
+revisits it against a REST integration.
 
 ### B3 — Duplicate-call prevention — **DONE**
 

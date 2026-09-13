@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -40,7 +41,7 @@ from .callers import (
     build_plan_arguments,
 )
 from .policy import Policy, default_policy
-from .schema import Account, CallReport, TranscriptTurn, mask_phone
+from .schema import OUTCOMES, Account, CallReport, TranscriptTurn, mask_phone
 from .script import CallScript
 
 INTEGRATION_HEADER = "cleared-to-call/0.1.0"
@@ -68,6 +69,7 @@ OUTCOME_PATTERNS = (
     ("refusal", re.compile(r"\brefusal\b|\brefused\b", re.IGNORECASE)),
     ("no_answer", re.compile(r"\bno[\s_-]?answer\b", re.IGNORECASE)),
 )
+REPORT_OUTCOMES = frozenset(item for item in OUTCOMES if item != "not_called")
 
 
 def resolve_server_url(base_url: str, channel: str, server_url: str | None) -> str:
@@ -79,6 +81,19 @@ def resolve_server_url(base_url: str, channel: str, server_url: str | None) -> s
 def token_cache_path(cache_root: str, server_url: str) -> Path:
     digest = hashlib.md5(server_url.encode("utf-8")).hexdigest()
     return Path(os.path.expanduser(cache_root)) / digest / "token.json"
+
+
+def resolve_calle_command(command: str | None = None) -> str:
+    """Find the CALL-E CLI. On Windows, bare `calle` is not enough for subprocess."""
+    if command:
+        return command
+    resolved = shutil.which("calle")
+    if resolved:
+        return resolved
+    raise CallerError(
+        "the CALL-E CLI is not on PATH. Install it with `npm install -g @call-e/cli` "
+        "or pass --calle-command."
+    )
 
 
 def read_access_token(cache_root: str, server_url: str) -> str:
@@ -129,21 +144,34 @@ def check_auth(calle_command: str, base_url: str, channel: str, server_url: str)
         return {}
 
 
-def unwrap_tool_result(result: Any) -> Any:
-    """The dict inside whatever the MCP client handed back.
+def normalize_tool_result(result: Any) -> Any:
+    """The plain payload inside whatever the MCP client handed back.
 
-    fastmcp 3.x returns a `CallToolResult` object with no `model_dump`, carrying
-    the real payload on `structured_content` and a JSON copy in `content[i].text`.
-    Everything downstream walks dicts and lists, so an unwrapped object reads as
-    empty: every extractor returns None and `plan_targets_only` sees no numbers
-    to object to. Unwrap once, here, so no caller has to know the transport type.
+    fastmcp 3.x returns a `CallToolResult` object with no `model_dump`. Depending
+    on the tool, the payload arrives on `structured_content`, on `data`, or only
+    as JSON in `content[i].text`. Everything downstream walks dicts and lists, so
+    a result left as an object reads as empty: every extractor returns None,
+    `ready_to_run: true` reads as missing, and `plan_targets_only` sees no
+    numbers to object to. Unwrap once, here.
+
+    The text-content path is not optional. Without it, a server that answers only
+    in text makes a dialable plan look like `ready_to_run: false`, which is
+    indistinguishable from the destination being unsupported.
     """
-    if isinstance(result, (dict, list, tuple)):
+    if result is None or isinstance(result, (dict, list, tuple)):
         return result
 
     structured = getattr(result, "structured_content", None)
-    if isinstance(structured, dict):
+    if isinstance(structured, dict) and structured:
         return structured
+
+    data = getattr(result, "data", None)
+    if isinstance(data, dict) and data:
+        return data
+    if data is not None and hasattr(data, "model_dump"):
+        dumped = data.model_dump()
+        if isinstance(dumped, dict) and dumped:
+            return dumped
 
     for item in getattr(result, "content", None) or []:
         text = getattr(item, "text", None)
@@ -153,14 +181,19 @@ def unwrap_tool_result(result: Any) -> Any:
             except json.JSONDecodeError:
                 continue
 
-    dump = getattr(result, "model_dump", None)
-    if callable(dump):
-        return dump()
+    if hasattr(result, "model_dump"):
+        dumped = result.model_dump()
+        if isinstance(dumped, dict):
+            nested = dumped.get("structured_content")
+            if isinstance(nested, dict) and nested:
+                return nested
+            return dumped
     return result
 
 
 def _payloads(value: Any) -> list[dict[str, Any]]:
     """Every dict inside a nested MCP response, so key lookups can be shallow."""
+    value = normalize_tool_result(value)
     found: list[dict[str, Any]] = []
     stack: list[Any] = [value]
     while stack:
@@ -170,6 +203,8 @@ def _payloads(value: Any) -> list[dict[str, Any]]:
             stack.extend(current.values())
         elif isinstance(current, (list, tuple)):
             stack.extend(current)
+        elif hasattr(current, "model_dump"):
+            stack.append(current.model_dump())
     return found
 
 
@@ -179,6 +214,35 @@ def first_value(value: Any, keys: tuple[str, ...]) -> Any:
             if key in payload and payload[key] not in (None, ""):
                 return payload[key]
     return None
+
+
+def extract_plan_feedback(plan: Any) -> dict[str, Any]:
+    """Human-readable block reasons from a `plan_call` response."""
+    summary = first_value(plan, ("confirm_summary",))
+    questions = first_value(plan, ("clarifying_questions",)) or []
+    if not isinstance(questions, list):
+        questions = []
+    options: list[str] = []
+    for payload in _payloads(plan):
+        raw_questions = payload.get("questions")
+        if not isinstance(raw_questions, list):
+            continue
+        for item in raw_questions:
+            if not isinstance(item, dict):
+                continue
+            for option in item.get("options") or []:
+                if isinstance(option, dict) and option.get("label"):
+                    options.append(str(option["label"]))
+    block_reason = None
+    if isinstance(summary, str) and summary.strip():
+        block_reason = summary.strip()
+    elif questions:
+        block_reason = str(questions[0])
+    return {
+        "block_reason": block_reason,
+        "clarifying_questions": [str(item) for item in questions],
+        "supported_region_language": options,
+    }
 
 
 def extract_status(value: Any) -> str | None:
@@ -250,6 +314,44 @@ def extract_transcript(value: Any) -> tuple[TranscriptTurn, ...]:
     return ()
 
 
+def extract_structured_result(value: Any) -> dict[str, str] | None:
+    """Read a flat outcome object when CALL-E returns one on `get_call_run`."""
+    for payload in _payloads(value):
+        for key in ("structured_result", "structuredResult", "result", "call_result"):
+            raw = payload.get(key)
+            if not isinstance(raw, dict):
+                continue
+            outcome = raw.get("outcome")
+            if not isinstance(outcome, str) or not outcome.strip():
+                continue
+            promise_date = raw.get("promise_date", "")
+            return {
+                "outcome": outcome.strip(),
+                "promise_date": str(promise_date).strip() if promise_date is not None else "",
+            }
+    return None
+
+
+def resolve_call_outcome(
+    value: Any,
+    summary: str | None,
+    transcript: tuple[TranscriptTurn, ...],
+    status: str | None,
+) -> tuple[str, str | None, str]:
+    """Prefer structured results; fall back to prose and provider status."""
+    structured = extract_structured_result(value)
+    if structured:
+        outcome = structured["outcome"]
+        promise_date = structured["promise_date"] or None
+        if outcome in REPORT_OUTCOMES:
+            if outcome == "promise_to_pay" and not promise_date:
+                promise_date = extract_promise_date(summary, transcript)
+            return outcome, promise_date, "structured"
+    outcome = extract_outcome(summary, transcript, status)
+    promise_date = extract_promise_date(summary, transcript) if outcome == "promise_to_pay" else None
+    return outcome, promise_date, "inferred"
+
+
 def extract_outcome(summary: str | None, transcript: tuple[TranscriptTurn, ...], status: str | None) -> str:
     """Read the outcome the agent reported, falling back to the provider status."""
     haystacks = [summary or ""]
@@ -286,7 +388,8 @@ def redact_payload(value: Any) -> Any:
     Numbers are masked with the same `mask_phone` the audit log uses, so the
     committed sample and the audit trail agree. Anything whose key names a
     credential is dropped whole rather than masked: a partially masked token is
-    still a token.
+    still a token. Keys are matched by substring, so `confirm_token` and
+    `refresh_token` are caught without being listed one by one.
     """
     if isinstance(value, dict):
         return {
@@ -300,6 +403,24 @@ def redact_payload(value: Any) -> Any:
     if isinstance(value, str):
         return E164_IN_TEXT.sub(lambda match: mask_phone(match.group(0)), value)
     return value
+
+
+def sanitize_call_run(payload: Any) -> dict[str, Any]:
+    """A provider payload ready to write to disk: unwrapped, redacted, labelled.
+
+    Both capture paths go through here - `run --execute --capture-payload` during
+    a batch, and `capture-run --run-id` for a run that already happened - so a
+    committed sample has the same shape whichever one produced it.
+    """
+    normalized = normalize_tool_result(payload)
+    if not isinstance(normalized, dict):
+        normalized = {"payload": normalized}
+    document = redact_payload(normalized)
+    document.setdefault(
+        "_note",
+        "Captured from get_call_run. Phone numbers masked; secrets redacted.",
+    )
+    return document
 
 
 def plan_targets_only(plan: Any, phone: str) -> None:
@@ -350,7 +471,7 @@ class CalleCaller:
         self.base_url = self.base_url or DEFAULT_BASE_URL
         self.channel = self.channel or DEFAULT_CHANNEL
         self.cache_root = self.cache_root or DEFAULT_CACHE_ROOT
-        self.calle_command = self.calle_command or "calle"
+        self.calle_command = resolve_calle_command(self.calle_command)
         self.server_url = resolve_server_url(self.base_url, self.channel, self.server_url)
 
     def token(self) -> str:
@@ -373,6 +494,14 @@ class CalleCaller:
         by dialling the person a second time.
         """
         return asyncio.run(self._recover(run_id))
+
+    def fetch_run(self, run_id: str) -> Any:
+        """Fetch a raw `get_call_run` payload for inspection or fixture capture."""
+        return asyncio.run(self._fetch_run(run_id))
+
+    async def _fetch_run(self, run_id: str) -> Any:
+        async with self._client() as client:
+            return await self._call_tool(client, "get_call_run", {"run_id": run_id}, {})
 
     async def _recover(self, run_id: str) -> CallReport:
         async with self._client() as client:
@@ -399,6 +528,7 @@ class CalleCaller:
                 build_call_metadata(account, self.audit_ref, policy),
             )
         plan_targets_only(plan, account.phone_e164)
+        feedback = extract_plan_feedback(plan)
         return {
             "account_id": account.account_id,
             "phone_masked": account.masked_phone,
@@ -406,6 +536,7 @@ class CalleCaller:
             "ready_to_run": bool(first_value(plan, ("ready_to_run",))),
             "plan_id": first_value(plan, ("plan_id",)),
             "has_confirm_token": isinstance(first_value(plan, ("confirm_token",)), str),
+            **feedback,
         }
 
     def _client(self) -> Any:
@@ -468,7 +599,7 @@ class CalleCaller:
         target = Path(os.path.expanduser(str(self.capture_path)))
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(
-            json.dumps(redact_payload(final), indent=2, sort_keys=True, default=str) + "\n",
+            json.dumps(sanitize_call_run(final), indent=2, sort_keys=True, default=str) + "\n",
             encoding="utf-8",
         )
 
@@ -478,24 +609,26 @@ class CalleCaller:
         status = extract_status(final)
         summary = extract_summary(final)
         transcript = extract_transcript(final)
-        outcome = extract_outcome(summary, transcript, status)
+        outcome, promise_date, outcome_source = resolve_call_outcome(
+            final, summary, transcript, status
+        )
         return CallReport(
             outcome=outcome,
             transcript=transcript,
-            promise_date=extract_promise_date(summary, transcript) if outcome == "promise_to_pay" else None,
+            promise_date=promise_date,
             provider_status=status,
             provider_run_id=run_id,
-            raw={"summary": summary, "status": status},
+            raw={"summary": summary, "status": status, "outcome_source": outcome_source},
         )
 
     async def _call_tool(self, client: Any, name: str, arguments: dict[str, Any], meta: dict[str, Any]) -> Any:
         result = await client.call_tool(
             name=name, arguments=arguments, meta=meta or None, raise_on_error=False
         )
-        payload = unwrap_tool_result(result)
         if getattr(result, "is_error", False):
+            payload = normalize_tool_result(result)
             raise CallerError(f"{name} failed: {json.dumps(payload, default=str)[:400]}")
-        return payload
+        return normalize_tool_result(result)
 
     async def _poll(
         self, client: Any, run_id: str, meta: dict[str, Any], account: Account | None

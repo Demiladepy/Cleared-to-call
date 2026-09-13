@@ -20,6 +20,7 @@ from typing import Any
 
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from cleared.audit import AuditLog
@@ -55,6 +56,7 @@ def _runtime_dir() -> Path:
 
 RUNTIME = _runtime_dir()
 TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 TEMPLATES = Jinja2Templates(directory=str(TEMPLATE_DIR))
 
 # These are read at request time and none of them is an import, so a bundler
@@ -66,6 +68,7 @@ REQUIRED_RUNTIME_FILES = (
     FIXTURES / "scenarios.json",
     FIXTURES / "suppression.jsonl",
     TEMPLATE_DIR / "index.html",
+    STATIC_DIR / "logo.jpg",
 )
 
 
@@ -123,6 +126,7 @@ class DemoState:
 _live_requested = os.environ.get("ALLOW_LIVE", "").lower() in {"1", "true", "yes"}
 state = DemoState(allow_live=_live_requested and not SERVERLESS)
 app = FastAPI(title="Cleared to Call", docs_url=None, redoc_url=None)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 def suppression() -> SuppressionList:
