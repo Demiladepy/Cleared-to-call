@@ -1,24 +1,176 @@
 # Cleared to Call
 
-**A consent-and-compliance gate for AI collection calls.**
-The call either happens lawfully, or provably does not.
+**Tagline:** Your AI can place the call. This decides whether it is allowed to.
 
-Everyone is building AI that can place the call. This is the layer that decides
-whether the call is *allowed to happen* — and refuses, with a named reason, when
-it is not.
+**A consent-and-compliance gate for AI collection calls.** The call either happens
+lawfully, or provably does not.
 
-**[Live demo →](https://clearedtocall.vercel.app)** — a batch of seven fictional
-accounts, three refused before dialing. Read-only: live calling is disabled on
-the public deployment, so nothing there can dial anyone.
+| | |
+| --- | --- |
+| **Live demo** | https://clearedtocall.vercel.app |
+| **This repo** | https://github.com/Demiladepy/Cleared-to-call |
+| **Agent Skill PR** | https://github.com/CALLE-AI/awesome-phone-call-agents/pull/574 |
+| **Demo video** | `[YOUR_UNLISTED_YOUTUBE_URL]` |
+| **Tests** | 277 passing |
+
+The public demo is read-only: live calling is disabled on Vercel, so nothing
+there can dial anyone. Local `--allow-live` is for your own authorized test
+numbers only.
+
+---
+
+## Devpost submission (copy-paste)
+
+Use this block when filling the hackathon form.
+
+### Project name
+
+Cleared to Call
+
+### Tagline
+
+Your AI can place the call. This decides whether it is allowed to.
+
+### Elevator pitch
+
+Cleared to Call is a pre-dial compliance gate for AI outbound collection calls.
+Before CALL-E dials, four rules check the recipient's local call window, consent
+on file, suppression list, and mandatory disclosure script. A fifth rule handles
+live opt-out and permanently suppresses the number. Every allow or refuse
+appends to a hash-chained audit log.
+
+The public demo runs a batch of seven fictional accounts: three are refused with
+named reasons before anything dials. The portable Agent Skill lives in the CALL-E
+community repo; the Python implementation, tests, and demo live here.
+
+### What it does (one sentence)
+
+A consent-and-compliance gate for AI collection calls that refuses with a named
+reason when a call would be unlawful, honors "stop calling me" live, and emits a
+tamper-evident record proving each call was lawful or provably refused.
+
+### Built with
+
+- [CALL-E](https://github.com/CALLE-AI/awesome-phone-call-agents) (`plan_call`, `run_call`, `get_call_run`)
+- Python 3.11, FastAPI, pytest
+- Node.js 20+ (Agent Skill scripts, no npm dependencies)
+- [Agent Skills](https://github.com/CALLE-AI/awesome-phone-call-agents/tree/main/skills) format (`skills/cleared-to-call/`)
+- Deployed on [Vercel](https://clearedtocall.vercel.app)
+
+### CALL-E account email
+
+The address you used with `calle auth login`.
+
+### Try it (judges, no login)
+
+1. Open https://clearedtocall.vercel.app
+2. See three refused rows (call window, no consent, suppression list) and four cleared
+3. Switch the time preset: New York and Los Angeles flip opposite ways at the same instant
+4. Expand **Technical details** on any row for the block code and audit ref
+5. Scroll to **Audit chain** and confirm verification passes
+
+---
+
+## Inspiration
+
+Outbound voice AI is racing ahead of the law. Platforms can place a call in
+seconds; statutory collection rules were written for human dialers and carry
+**$500–$1,500 per violation** under the TCPA, with FDCPA and Regulation F
+layered on top. Operators are liable when the agent gets it wrong, not the
+software vendor.
+
+Three things pointed at the same gap:
+
+1. **`skills/ledger-collections-call`** in the CALL-E repo lists consumer FDCPA
+   / statutory debt-collection engines under **When Not To Use**. That is the
+   missing layer: something that decides whether the call may happen at all.
+2. **`apps/python/consent-gate`** (ConsentGate) covers adjacent pre-flight checks
+   but excludes financial content by design. Collections need a gate built for
+   that domain, with live revocation and tamper-evident proof.
+3. **CALL-E design principles** say never infer timezone from a phone number.
+   The API has no `recipient_timezone` field on `plan_call`, so every integrator
+   rebuilds the hardest part. This project makes that logic explicit, testable,
+   and portable as an Agent Skill.
+
+The goal is not another dialer. It is the precondition lenders need before they
+let AI scale outbound collections.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph inputs [Inputs]
+    ACC[Account batch JSON]
+    POL[policy.json]
+    SUP[suppression.jsonl]
+    NOW[Evaluation instant]
+  end
+
+  subgraph gate [Pre-dial gate — Rules 1–4]
+    R1[R1 Call window]
+    R2[R2 Consent]
+    R3[R3 Suppression]
+    R4[R4 Disclosure]
+  end
+
+  subgraph audit [Audit]
+    LOG[Hash-chained JSONL]
+    VER[verify]
+  end
+
+  subgraph callpath [CALL-E path — only when cleared]
+    PRE[preflight / plan_call]
+    CHK[Destination check]
+    RUN[run_call]
+    GET[get_call_run]
+    REV[R5 Revocation scan]
+  end
+
+  ACC --> gate
+  POL --> gate
+  SUP --> gate
+  NOW --> gate
+
+  gate -->|BLOCK| LOG
+  gate -->|ALLOW| PRE
+  PRE --> CHK
+  CHK -->|mismatch| LOG
+  CHK -->|ok| RUN
+  RUN --> GET
+  GET --> REV
+  REV --> LOG
+  LOG --> VER
+```
+
+**Three deliverables, one policy file:**
+
+| Piece | Role |
+| --- | --- |
+| `skills/cleared-to-call/` | Portable Agent Skill (Node). Submitted upstream via PR #574. Never dials. |
+| `cleared/` | Python gate, audit chain, suppression, batch runner, CALL-E caller. 277 tests. |
+| `demo/` | FastAPI UI over a fixture batch. Shows every decision, refusal, transcript, audit entry. |
+
+Node and Python gates read **the same `policy.json`**. `tests/test_skill_scripts.py`
+runs both over the same fixtures and compares every verdict.
+
+**Call flow when live:**
+
+1. Gate evaluates rules 1–4 at the chosen instant (or real time for live dial).
+2. On ALLOW, `plan_call` runs; destination is checked against the cleared number.
+3. `run_call` → `get_call_run`; transcript is scanned for revocation (rule 5).
+4. Opt-out suppresses the number permanently; audit line appended either way.
+
+Dry run is the default everywhere. `--execute` and `--allow-live` require explicit
+flags plus a logged-in CALL-E CLI.
 
 ---
 
 ## The problem
 
 Automated collection calls are the highest-volume use case in outbound voice AI,
-and the most legally exposed one. In the United States a single non-compliant
-call carries statutory damages of **$500–$1,500**, and class actions settle in
-the millions. The rules are specific and unforgiving:
+and the most legally exposed one. The rules are specific:
 
 - call only between 08:00 and 21:00 **in the recipient's local time**
 - call only with prior express consent on file
@@ -26,66 +178,32 @@ the millions. The rules are specific and unforgiving:
 - open with a mandatory identity and purpose disclosure
 - honor "stop calling me" immediately, and permanently
 
-When an AI agent gets any of that wrong, the **operator** is liable, not the
-software. Which is why lenders who would happily let AI dial, don't.
+When an AI agent gets any of that wrong, the **operator** is liable. Lenders who
+would happily let AI dial often won't, because nothing in the stack proves the
+call was allowed.
 
-`cleared-to-call` is the missing precondition: a gate that runs before the
-dialer, refuses when the law says no, honors a live opt-out mid-call, and emits
-a tamper-evident record proving each decision either way.
-
-> *"You built collections AI that scales. This is the layer that lets it scale
-> safely — so the call either happens lawfully, or provably doesn't."*
-
----
-
-## What this is
-
-Three pieces, in dependency order:
-
-| | |
-| --- | --- |
-| **`skills/cleared-to-call/`** | The portable Agent Skill. This is the contribution: `SKILL.md`, the policy and safety references, and a self-contained Node implementation of the gate. Installs into any Agent Skills host and wraps any outbound CALL-E use case. |
-| **`cleared/`** | A small Python package holding the same gate, the hash-chained audit log, the suppression list and the batch runner. Pure predicates, no I/O, 277 tests. |
-| **`demo/`** | A thin FastAPI view that runs the batch over fixtures and shows every decision, refusal reason, transcript and audit entry. A demo, not a product. |
-
-The Node and Python gates read **the same `policy.json`**, and a test runs both
-over the same fixtures and compares the verdicts, so the shipped skill can never
-drift from the tested implementation.
-
-## What this is not
-
-It is not a dialer, and it does not reimplement calling. CALL-E places the call;
-this decides whether CALL-E is allowed to. It is not a compliance product, not
-legal advice, and not a claim that a calling program is lawful — it enforces
-five specific preconditions under US federal law, proves it did, and refuses
-when it cannot.
+`cleared-to-call` refuses when the law says no, honors live opt-out, and leaves a
+hash-chained record either way.
 
 ---
 
 ## The policy: five rules
 
-The rules live in [`cleared/policy.json`](cleared/policy.json) as a declarative
-spec — the gate reads them, nothing hard-codes a threshold.
+Rules live in [`cleared/policy.json`](cleared/policy.json). Full citations:
+[`skills/cleared-to-call/references/policy.md`](skills/cleared-to-call/references/policy.md).
 
-| # | Rule | Check | On failure |
-| --- | --- | --- | --- |
-| 1 | **Call window** | Local time at the recipient is inside 08:00–21:00, using the IANA timezone stored on the account | `OUTSIDE_CALL_WINDOW` |
-| 2 | **Consent on file** | `consent_on_file` is true and a parseable `consent_timestamp` exists | `NO_CONSENT` |
-| 3 | **Not suppressed** | The number is not on the opt-out / DNC list | `ON_SUPPRESSION_LIST` |
-| 4 | **Disclosure ready** | The rendered script carries all four required disclosure elements | `MISSING_DISCLOSURE` |
-| 5 | **Live revocation** | *(during the call)* On revocation: end the call, record `opt_out`, suppress the number | outcome `opt_out` |
+| # | Rule | Check | On failure | Authority (summary) |
+| --- | --- | --- | --- | --- |
+| 1 | **Call window** | Local time 08:00–21:00 from stored IANA timezone | `OUTSIDE_CALL_WINDOW` | FDCPA 1692c(a)(1); Reg F 12 CFR 1006.6(b)(1)(i) |
+| 2 | **Consent** | `consent_on_file` + parseable `consent_timestamp` | `NO_CONSENT` | TCPA 47 U.S.C. 227(b)(1)(A) |
+| 3 | **Not suppressed** | Number not on opt-out / DNC list | `ON_SUPPRESSION_LIST` | TCPA 47 CFR 64.1200(d); FDCPA 1692c(c) |
+| 4 | **Disclosure** | Script contains all required disclosure elements | `MISSING_DISCLOSURE` | FDCPA 1692e(11); TCPA 227(d)(3)(A) |
+| 5 | **Revocation** | Live + post-call transcript scan; permanent suppression | outcome `opt_out` | TCPA 64.1200(a)(10); Reg F 1006.6(c) |
 
-Rules 1–4 are the pre-dial gate. All four are always evaluated — the reported
-block reason is the first failure in policy order, but the audit entry records
-every rule.
+**Never guessed:** timezone comes from the account record only, not area code,
+country code, locale, or server clock.
 
-Rule 5 is enforced twice: the call task tells the agent to stop, and the
-transcript is re-read afterwards. **The second check is the one that writes the
-suppression entry**, so an agent that talks past an opt-out still ends with the
-number suppressed and the promise discarded.
-
-Each rule carries the property it enforces, stated the way a temporal-logic
-specification would state it:
+Temporal properties (specification, not model-checked):
 
 ```text
 R1  G(dial -> local_time_within(08:00, 21:00))
@@ -95,15 +213,55 @@ R4  G(dial -> script_contains(all disclosure_elements))
 R5  G(revocation_detected -> F(end_call & suppressed(number)))
 ```
 
-These are specification, not implementation: the gate evaluates the runtime
-checks, it does not model-check the formulas. They are in the policy file
-because a rule stated as a property is reviewable in a way that a rule buried in
-code is not. Details and citations: [`references/policy.md`](skills/cleared-to-call/references/policy.md).
+---
 
-**Never guessed:** timezone comes from the account record only — never from the
-area code, country code, locale, or server clock. An area code says where a
-number was issued, not where the person is standing. A missing timezone is a
-block, not an assumption.
+## What we learned building on CALL-E
+
+Condensed feedback for the hackathon survey (full list in [`SUBMISSION.md`](SUBMISSION.md)):
+
+1. **`plan_call` has no timezone field** — integrators rebuild recipient-local-time logic; DST errors are liability.
+2. **No structured opt-out on `get_call_run`** — `COMPLETED` looks the same whether the person opted out or paid.
+3. **No platform suppression list** — each integration keeps its own DNC store.
+4. **Consent is invisible to the platform** — nothing in the plan records why this number may be called.
+5. **MCP vs REST payload shapes differ** — `structured_content` vs JSON in `content` broke our first live runs.
+6. **`DECLINED` with zero duration** — carrier rejection reads like the callee hung up; dangerous for legal records.
+7. **Transcript speaker labels are undocumented** — opt-out detection depends on knowing which label is the recipient.
+
+---
+
+## References and prior art
+
+### Legal and regulatory (US federal collections)
+
+| Source | Used for |
+| --- | --- |
+| [TCPA 47 U.S.C. 227](https://www.law.cornell.edu/uscode/text/47/227) | Consent, artificial voice disclosure, DNC |
+| [FDCPA 15 U.S.C. 1692](https://www.law.cornell.edu/uscode/text/15/1692) | Call window, purpose disclosure, opt-out |
+| [Regulation F, 12 CFR Part 1006](https://www.ecfr.gov/current/title-12/chapter-X/part-1006) | Time-of-day contact, revocation |
+| [47 CFR 64.1200](https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-64/subpart-L/section-64.1200) | Telemarketing and DNC rules |
+
+Not legal advice. Engineering encoding of widely documented requirements; operators
+remain responsible for their compliance position.
+
+### CALL-E ecosystem
+
+| Resource | Role in this project |
+| --- | --- |
+| [awesome-phone-call-agents](https://github.com/CALLE-AI/awesome-phone-call-agents) | Host repo; Agent Skill contribution ([PR #574](https://github.com/CALLE-AI/awesome-phone-call-agents/pull/574)) |
+| [skills/ledger-collections-call](https://github.com/CALLE-AI/awesome-phone-call-agents/tree/main/skills/ledger-collections-call) | Complementary collections skill; lists FDCPA engines under *When Not To Use* |
+| [apps/python/consent-gate](https://github.com/CALLE-AI/awesome-phone-call-agents/tree/main/apps/python/consent-gate) | Adjacent prior art (pre-flight, non-financial scope) |
+| [docs/design-principles.md](https://github.com/CALLE-AI/awesome-phone-call-agents/blob/main/docs/design-principles.md) | Timezone must not be inferred from number (principle we enforce in code) |
+| [@call-e/cli](https://www.npmjs.com/package/@call-e/cli) | Auth and live call path |
+
+### How this differs from ConsentGate
+
+| | ConsentGate | Cleared to Call |
+| --- | --- | --- |
+| **Form** | Python app under `apps/python/` | Agent Skill under `skills/` + Python reference impl |
+| **Domain** | Low-risk admin; excludes financial content | Consumer collections (TCPA / FDCPA / Reg F) |
+| **Rule 5** | Pre-flight only | Live revocation + post-call transcript re-read |
+| **Proof** | Redacted manifest | Append-only hash chain with verifier |
+| **Portability** | Python required | Node skill runs standalone |
 
 ---
 
@@ -132,41 +290,20 @@ A-1006    ALLOW    no_answer              -          aud_edfd6351
 A-1007    ALLOW    dispute                yes        aud_80358dda
 
 7 account(s): 3 blocked, 4 called, 1 opt-out(s).
-  blocked - NO_CONSENT: 1
-  blocked - ON_SUPPRESSION_LIST: 1
-  blocked - OUTSIDE_CALL_WINDOW: 1
-  opt-out - A-1005 said "Stop calling me. I do not want these calls." -> number suppressed
-
 Audit chain: verified (7 entries).
 ```
-
-Run it again without `--fresh` and A-1005 is now blocked `ON_SUPPRESSION_LIST`.
-The opt-out is permanent, with no further human action.
 
 Other commands:
 
 ```bash
-python -m cleared.cli evaluate --account-id A-1002   # one decision, as JSON
-python -m cleared.cli verify                          # verify the audit chain
-python -m cleared.cli policy                          # print the active policy
-```
-
-The demo view:
-
-```bash
+python -m cleared.cli evaluate --account-id A-1002
+python -m cleared.cli verify
+python -m cleared.cli policy
 python -m demo.app --now 2026-08-28T13:30:00Z
-```
-
-Tests:
-
-```bash
 python -m pytest
 ```
 
 ### The skill on its own
-
-The skill has no dependencies beyond Node and needs nothing from this
-repository:
 
 ```bash
 cd skills/cleared-to-call
@@ -182,41 +319,30 @@ Exit codes: `0` allow, `2` block, `3` revocation detected, `1` unusable input.
 
 ## Placing real calls
 
-Dry run is the default everywhere. Live calling needs an explicit flag, a
-logged-in CALL-E CLI, and a number you are authorized to call.
+Dry run is the default. Live calling needs `--execute` or `--allow-live`, a
+logged-in CALL-E CLI, consent on file, and a number you are authorized to call.
 
 ```bash
 npm install -g @call-e/cli
 calle auth login
 pip install -e ".[live]"
 
-python -m cleared.cli preflight --account-id A-1001 --region US   # free: gate + plan, no dial
-python -m cleared.cli run --execute --account-id A-1001
+python -m cleared.cli preflight --account-id A-9001 --region IN
+python -m cleared.cli run --execute --account-id A-9001 --region IN
 ```
 
-`preflight` runs the gate and `plan_call` without dialling, and reports whether
-the plan's destination can be checked against the cleared number. CALL-E echoes
-the destination masked, so `--execute` compares its last four digits and refuses
-a plan that names no destination unless you pass `--allow-unverified-destination`.
+India (`+91`, `Asia/Kolkata`, `--region IN`) is supported on CALL-E. The gate
+policy is US federal; the recipient's timezone drives rule 1, not the country
+code. See [`LIVE-TEST.md`](LIVE-TEST.md) and [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md).
 
-`DRY_RUN=1` in the environment refuses `--execute` outright.
-
-The cleared path is: `plan_call` → **inspect the plan** → `run_call` →
-`get_call_run` → transcript → opt-out re-check. A plan that names any number
-other than the cleared account's is refused before it runs.
-
-The demo's per-account call button exists only when the app is started with
-`--allow-live`, and a blocked account has no path to a dial under any flag.
-
-**Fixtures use reserved fictional `555-01xx` numbers.** Replace one with a real
-number only for a test call to a phone you own.
+**Fixtures use fictional `555-01xx` numbers.** Real numbers belong only in
+gitignored `fixtures/demo-live.json`.
 
 ---
 
 ## The audit record
 
-One append-only JSONL line per decision, blocked or called. Each line carries
-the hash of the line before it:
+One append-only JSONL line per decision. Each line hashes the previous:
 
 ```json
 {"account_id":"A-1002","audit_ref":"aud_8ce3400a","block_reason":"OUTSIDE_CALL_WINDOW",
@@ -227,64 +353,47 @@ the hash of the line before it:
  "timestamp":"2026-08-28T13:30:00+00:00"}
 ```
 
-A live call also writes `intent` before the provider is touched and `dispatched`
-once a run id exists, carried in `provider_ref`. If the process dies mid-call, the
-next run recovers the outcome from the provider instead of dialling again.
-
-Editing, deleting, or reordering any entry breaks the chain from that point on,
-and `verify` reports the first bad index. Recomputing the tampered entry's own
-hashes does not help — the next entry's `prev_hash` no longer matches.
-
-Phone numbers in the log are always masked. The full number lives in exactly two
-places: the suppression list, which has to match real dial targets, and the dial
-payload itself.
+Editing, deleting, or reordering entries breaks the chain; `verify` reports the
+first bad index. Phone numbers in the log are always masked.
 
 ---
 
-## Layout
+## Repository layout
 
 ```text
 cleared/           gate, policy loader, audit chain, suppression, runner, CALL-E caller
-  policy.json      the five rules, the call window, the disclosure elements
+  policy.json      the five rules, call window, disclosure elements
 demo/              FastAPI view over a batch run
-fixtures/          7 fictional accounts covering every branch, seed suppression list
+fixtures/          seven fictional accounts, seed suppression list
 skills/cleared-to-call/
-  SKILL.md         progressive-disclosure entry point
+  SKILL.md         Agent Skill entry point
   references/      policy.md, safety.md, examples.md
-  scripts/         self-contained Node gate + helpers
-  assets/          policy.json (identical to the package copy, checked by a test)
-tests/             277 tests: rules, audit chain, revocation, runner, parity, demo
+  scripts/         self-contained Node gate
+  assets/          policy.json (parity-checked against cleared/)
+tests/             277 tests
 ```
+
+---
 
 ## Scope and limits
 
-Deliberately not built:
+- **One jurisdiction:** US federal (TCPA / FDCPA / Reg F) only.
+- **Five rules:** no state caps, reassigned-number DB, or litigator lists.
+- **Not a dialer, not legal advice, not a CRM integration.**
 
-- **One jurisdiction.** US federal (TCPA / FDCPA / Reg F) only. Another region
-  needs another policy file reviewed by someone qualified to write it, not a
-  branch inside an existing rule.
-- **Five rules.** No state-level variations, frequency caps, reassigned-number
-  database, or litigator suppression.
-- **No verification engine.** The temporal properties are specification. Rules
-  compile to simple runtime checks, and that is the whole point.
-- **Fixtures only.** No lender, CRM, or servicing-system integration.
-- Not legal advice. The operator remains responsible for their compliance
-  position.
+---
 
-Roadmap, in rough order of value: state-level call-window and frequency rules;
-EU/UK and APAC policy files; a reassigned-number check before R2; consent
-provenance in the audit entry; signed audit anchors so the chain can be attested
-externally.
+## Submission checklist
 
-## Submission
-
-| | |
+| Item | Status |
 | --- | --- |
-| **Live demo** | https://clearedtocall.vercel.app |
-| **Agent Skill PR** | https://github.com/CALLE-AI/awesome-phone-call-agents/pull/574 |
-| **Video shoot** | [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md) |
-| **Devpost copy** | [`DEVPOST.md`](DEVPOST.md) |
-| **Full pack** | [`SUBMISSION.md`](SUBMISSION.md) |
+| Code + tests (277) | Done |
+| Live demo (Vercel) | Done |
+| Agent Skill PR #574 | Open |
+| Demo video | You: [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md) |
+| Devpost form | You: copy sections above + feedback from [`SUBMISSION.md`](SUBMISSION.md) |
+
+---
 
 ## License
 
