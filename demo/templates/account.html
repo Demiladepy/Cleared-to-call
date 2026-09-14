@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% set active_page = "overview" %}
+{% block content %}
+<div class="wrap page">
+  <p class="crumbs"><a href="/">Overview</a> &nbsp;/&nbsp; Borrowers &nbsp;/&nbsp; {{ account.account_id }}</p>
+
+  <h1 class="display">{{ account.display_name }}</h1>
+  <p class="intro">
+    Every piece of evidence behind this borrower's decision: the record the gate read,
+    each rule it evaluated, the disclosure it checked for, and the audit entries it wrote.
+  </p>
+
+  {% if not decision.allowed %}
+  <div class="banner-big bad">
+    <div>
+      <strong>Refused before dialling &mdash; {{ result.block_reason|replace("_", " ")|title }}</strong><br />
+      Nothing downstream of the gate ran. No provider was contacted.
+    </div>
+  </div>
+  {% elif result.opt_out %}
+  <div class="banner-big bad">
+    <div>
+      <strong>Cleared, called, and opted out</strong><br />
+      The recipient revoked consent during the call. The number is now suppressed.
+    </div>
+  </div>
+  {% else %}
+  <div class="banner-big ok">
+    <div>
+      <strong>Cleared by all four pre-dial rules</strong><br />
+      Outcome: {{ result.outcome|replace("_", " ") }}{% if result.promise_date %}, promised {{ result.promise_date }}{% endif %}.
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="grid-2">
+    <section class="card">
+      <h2>Account record</h2>
+      <p class="sub">Exactly what the gate was given. Nothing here is inferred.</p>
+      <dl class="kv">
+        <dt>Account</dt><dd class="mono">{{ account.account_id }}</dd>
+        <dt>Phone</dt><dd class="mono">{{ account.masked_phone }}</dd>
+        <dt>Timezone</dt><dd class="mono">{{ account.timezone }}</dd>
+        <dt>Local time at evaluation</dt><dd class="mono">{{ decision.local_time or "Unknown" }}</dd>
+        <dt>Balance</dt><dd>{{ "%.2f"|format(account.amount_due) }} {{ account.currency }}</dd>
+        <dt>Consent on file</dt>
+        <dd>{% if account.consent_on_file %}<span class="st-pass">Yes</span>{% else %}<span class="st-fail">No</span>{% endif %}</dd>
+        <dt>Consent recorded</dt><dd class="mono">{{ account.consent_timestamp or "&mdash;"|safe }}</dd>
+        <dt>Creditor</dt><dd>{{ account.creditor_name }}</dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Structured result</h2>
+      <p class="sub">The record this account produced, whether or not it was called.</p>
+      <dl class="kv">
+        <dt>Decision</dt>
+        <dd>{% if decision.allowed %}<span class="st-pass">ALLOW</span>{% else %}<span class="st-fail">BLOCK</span>{% endif %}</dd>
+        <dt>Block reason</dt><dd class="mono">{{ result.block_reason or "&mdash;"|safe }}</dd>
+        <dt>Call placed</dt><dd>{{ "Yes" if result.call_placed else "No" }}</dd>
+        <dt>Outcome</dt><dd class="mono">{{ result.outcome }}</dd>
+        <dt>Promise date</dt><dd class="mono">{{ result.promise_date or "&mdash;"|safe }}</dd>
+        <dt>Disclosure given</dt>
+        <dd>{% if result.disclosure_given %}<span class="st-pass">Yes</span>{% else %}<span class="muted">&mdash;</span>{% endif %}</dd>
+        <dt>Opted out</dt>
+        <dd>{% if result.opt_out %}<span class="st-fail">Yes</span>{% else %}No{% endif %}</dd>
+        <dt>On suppression list now</dt>
+        <dd>{% if now_suppressed %}<span class="st-fail">Yes</span>{% else %}No{% endif %}</dd>
+        <dt>Audit reference</dt><dd class="mono">{{ result.audit_ref }}</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Pre-dial rules</h2>
+    <p class="sub">
+      All four are evaluated even after one fails, so the full picture is recorded.
+      The block reason is the first failure in policy order.
+    </p>
+    <div class="tablewrap">
+      <table class="dtable">
+        <thead>
+          <tr><th>Rule</th><th>Result</th><th>Evidence</th><th>Authority</th></tr>
+        </thead>
+        <tbody>
+        {% for rule in decision.rules %}
+          {% set meta = rule_meta[rule.rule_id] %}
+          <tr>
+            <td><strong>{{ rule.rule_id }}</strong> {{ rule.name|replace("_", " ") }}</td>
+            <td>{% if rule.passed %}<span class="st-pass">Pass</span>{% else %}<span class="st-fail">Fail</span>{% endif %}</td>
+            <td>{{ rule.detail }}</td>
+            <td class="muted">{{ meta.authority }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Disclosure check</h2>
+    <p class="sub">Rule 4 reads the rendered script before anything dials. Every element must be present.</p>
+    <div class="tablewrap">
+      <table class="dtable">
+        <thead><tr><th>Element</th><th>What it requires</th><th>In script</th></tr></thead>
+        <tbody>
+        {% for check in disclosure_checks %}
+          <tr>
+            <td class="mono">{{ check.element_id }}</td>
+            <td>{{ check.description }}</td>
+            <td>{% if check.present %}<span class="st-pass">Present</span>{% else %}<span class="st-fail">Missing</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="sub" style="margin:16px 0 8px">The opening the agent is instructed to say, verbatim, first:</p>
+    <p class="say">{{ record.script.disclosure }}</p>
+  </section>
+
+  {% if record.transcript %}
+  <section class="card">
+    <h2>Call transcript</h2>
+    <p class="sub">
+      {% if record.revocation %}
+        Rule 5 re-read this after the call and matched &ldquo;{{ record.revocation.matched_phrase }}&rdquo;
+        on turn {{ record.revocation.turn_index + 1 }}. That re-read, not the agent, is what suppresses the number.
+      {% else %}
+        No revocation phrase was heard from the recipient.
+      {% endif %}
+      {% if record.report and record.report.raw and record.report.raw.simulated %}Simulated call.{% endif %}
+    </p>
+    <div class="tablewrap">
+      <table class="dtable">
+        <tbody>
+        {% for turn in record.transcript %}
+          <tr>
+            <td class="muted" style="width:92px">{{ turn.speaker }}</td>
+            <td>
+              {% if record.revocation and loop.index0 == record.revocation.turn_index %}
+                <span class="st-fail">{{ turn.text }}</span>
+              {% else %}{{ turn.text }}{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="card">
+    <h2>Audit entries</h2>
+    <p class="sub">
+      Every line this account wrote. Each carries the hash of the line before it in the whole log.
+      <a href="/audit">See the full chain</a>.
+    </p>
+    <div class="tablewrap">
+      <table class="dtable">
+        <thead><tr><th>Ref</th><th>Decision</th><th>Outcome</th><th>Recorded</th><th>prev &rarr; hash</th></tr></thead>
+        <tbody>
+        {% for entry in entries %}
+          <tr>
+            <td class="mono">{{ entry.audit_ref }}</td>
+            <td>
+              {% if entry.decision == "allow" %}<span class="st-pass">allow</span>
+              {% elif entry.decision == "block" %}<span class="st-fail">block</span>
+              {% else %}<span class="st-note">{{ entry.decision }}</span>{% endif %}
+            </td>
+            <td class="mono">{{ entry.outcome or "&mdash;"|safe }}</td>
+            <td class="mono">{{ entry.timestamp[:19]|replace("T", " ") }}</td>
+            <td class="hashv">{{ entry.prev_hash[:10] }} &rarr; {{ entry.hash[:10] }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="muted">No entries for this account yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="actions" style="justify-content:space-between">
+    {% if previous_id %}<a class="btn btn-secondary" href="/accounts/{{ previous_id }}">&larr; {{ previous_id }}</a>{% else %}<span></span>{% endif %}
+    <a class="btn btn-secondary" href="/">Back to overview</a>
+    {% if next_id %}<a class="btn btn-secondary" href="/accounts/{{ next_id }}">{{ next_id }} &rarr;</a>{% else %}<span></span>{% endif %}
+  </div>
+</div>
+{% endblock %}

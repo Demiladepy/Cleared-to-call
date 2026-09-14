@@ -28,6 +28,7 @@ from cleared.callers import FakeCaller
 from cleared.policy import load_policy
 from cleared.runner import BatchRun, RunRecord, load_accounts, process_account, run_batch
 from cleared.schema import parse_iso8601
+from cleared.script import check_disclosure
 from cleared.suppression import SuppressionList
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -67,7 +68,11 @@ REQUIRED_RUNTIME_FILES = (
     FIXTURES / "accounts.json",
     FIXTURES / "scenarios.json",
     FIXTURES / "suppression.jsonl",
+    TEMPLATE_DIR / "base.html",
     TEMPLATE_DIR / "index.html",
+    TEMPLATE_DIR / "account.html",
+    TEMPLATE_DIR / "audit.html",
+    TEMPLATE_DIR / "policy.html",
     STATIC_DIR / "logo.jpg",
 )
 
@@ -223,6 +228,88 @@ def index(request: Request) -> HTMLResponse:
     state.message = None
     state.error = None
     return TEMPLATES.TemplateResponse(request, "index.html", model)
+
+
+def _ensure_batch() -> HTMLResponse | None:
+    """Detail pages read the same evaluated batch the overview shows.
+
+    Re-evaluating per page would let a borrower's detail disagree with the row
+    that linked to it, which is the one thing a drill-down must never do.
+    """
+    missing = missing_runtime_files()
+    if missing:
+        return HTMLResponse("Cleared to Call is not fully deployed.", status_code=503)
+    if state.run is None:
+        execute_batch(fresh=True)
+    return None
+
+
+def _shell_context(policy: Any, audit: AuditLog) -> dict[str, Any]:
+    return {"policy": policy, "verification": audit.verify(), "serverless": SERVERLESS}
+
+
+@app.get("/accounts/{account_id}", response_class=HTMLResponse)
+def account_detail(request: Request, account_id: str) -> HTMLResponse:
+    """Why this borrower was cleared or refused, with every piece of evidence."""
+    failure = _ensure_batch()
+    if failure is not None:
+        return failure
+    records = {r.account.account_id: r for r in state.run.records}
+    record = state.live_records.get(account_id) or records.get(account_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"no such account in this batch: {account_id}")
+
+    policy = load_policy()
+    audit = AuditLog(state.audit_path)
+    ordered = list(state.run.records)
+    position = next(i for i, r in enumerate(ordered) if r.account.account_id == account_id)
+    model = {
+        **_shell_context(policy, audit),
+        "record": record,
+        "account": record.account,
+        "decision": record.decision,
+        "result": record.result,
+        "rule_meta": {rule.id: rule for rule in policy.rules},
+        "disclosure_checks": check_disclosure(record.script.disclosure, policy),
+        "entries": [e for e in audit.entries() if e.get("account_id") == account_id],
+        "now_suppressed": suppression().contains(record.account.phone_e164),
+        "previous_id": ordered[position - 1].account.account_id if position > 0 else None,
+        "next_id": ordered[position + 1].account.account_id if position + 1 < len(ordered) else None,
+    }
+    return TEMPLATES.TemplateResponse(request, "account.html", model)
+
+
+@app.get("/audit", response_class=HTMLResponse)
+def audit_page(request: Request) -> HTMLResponse:
+    """The whole chain, not the last fourteen entries."""
+    failure = _ensure_batch()
+    if failure is not None:
+        return failure
+    policy = load_policy()
+    audit = AuditLog(state.audit_path)
+    entries = audit.entries()
+    counts: dict[str, int] = {}
+    for entry in entries:
+        counts[entry.get("decision", "?")] = counts.get(entry.get("decision", "?"), 0) + 1
+    model = {
+        **_shell_context(policy, audit),
+        "entries": entries,
+        "counts": counts,
+        "head_hash": entries[-1]["hash"] if entries else None,
+    }
+    return TEMPLATES.TemplateResponse(request, "audit.html", model)
+
+
+@app.get("/policy", response_class=HTMLResponse)
+def policy_page(request: Request) -> HTMLResponse:
+    """The rules as data: what each requires, its authority, and its property."""
+    failure = _ensure_batch()
+    if failure is not None:
+        return failure
+    policy = load_policy()
+    return TEMPLATES.TemplateResponse(
+        request, "policy.html", _shell_context(policy, AuditLog(state.audit_path))
+    )
 
 
 @app.post("/run")

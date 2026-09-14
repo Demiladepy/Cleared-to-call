@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% set active_page = "policy" %}
+{% block content %}
+<div class="wrap page">
+  <p class="crumbs"><a href="/">Overview</a> &nbsp;/&nbsp; Policy</p>
+
+  <h1 class="display">The policy is data</h1>
+  <p class="intro">
+    Nothing in the gate hard-codes a legal threshold. Every rule below is read from
+    <code class="mono">policy.json</code> at runtime, and the same file drives the Python gate
+    and the Node Agent Skill. A test runs both over the same accounts and compares every verdict.
+  </p>
+
+  <div class="grid-2">
+    <section class="card">
+      <h2>{{ policy.policy_id }}</h2>
+      <p class="sub">Version {{ policy.policy_version }}</p>
+      <dl class="kv">
+        <dt>Jurisdiction</dt><dd>{{ policy.jurisdiction }}</dd>
+        <dt>Call window</dt><dd>{{ policy.window_label }}, local to the recipient</dd>
+        <dt>Timezone source</dt><dd class="mono">{{ policy.timezone_source }}</dd>
+        <dt>Authorities</dt><dd>{{ policy.authorities|join(" · ") }}</dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>What this is not</h2>
+      <p class="sub">Stated plainly, because an overclaim here would be the costly kind.</p>
+      <dl class="kv">
+        <dt>Legal advice</dt><dd>No. An engineering encoding of documented requirements.</dd>
+        <dt>Sufficient</dt><dd>No. <code>ALLOW</code> is necessary for this policy, not proof a call is lawful.</dd>
+        <dt>Complete</dt><dd>No state rules, frequency caps, or reassigned-number checks.</dd>
+        <dt>Guessing</dt><dd>Never. A missing timezone or consent record is a refusal.</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>The five rules</h2>
+    <p class="sub">
+      Rules 1&ndash;4 run before dialling. Rule 5 runs during and after the call.
+      Each carries the property it enforces, written as a temporal-logic formula:
+      <span class="mono">G</span> is &ldquo;always&rdquo;, <span class="mono">F</span> is &ldquo;eventually&rdquo;.
+    </p>
+    <div class="tablewrap">
+      <table class="dtable">
+        <thead>
+          <tr><th>Rule</th><th>Requirement</th><th>On failure</th><th>Authority</th><th>Property</th></tr>
+        </thead>
+        <tbody>
+        {% for rule in policy.rules %}
+          <tr>
+            <td>
+              <strong>{{ rule.id }}</strong> {{ rule.name|replace("_", " ") }}<br />
+              <span class="muted">{{ "before dialling" if rule.stage == "pre_dial" else "during the call" }}</span>
+            </td>
+            <td>{{ rule.requirement }}</td>
+            <td class="mono">{{ rule.block_reason }}</td>
+            <td class="muted">{{ rule.authority }}</td>
+            <td class="hashv">{{ rule.temporal_form }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid-2">
+    <section class="card">
+      <h2>Required disclosure</h2>
+      <p class="sub">Rule 4 refuses a script missing any of these.</p>
+      <div class="tablewrap">
+        <table class="dtable">
+          <tbody>
+          {% for element in policy.disclosure_elements %}
+            <tr>
+              <td class="mono">{{ element.id }}</td>
+              <td>{{ element.description }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Revocation phrases</h2>
+      <p class="sub">
+        Rule 5 matches these in recipient turns only, so the agent's own
+        &ldquo;say stop calling&rdquo; disclosure never counts. The list is a floor, not a
+        ceiling: an opt-out the agent understands but that is not listed must still be honoured.
+      </p>
+      <div class="pills">
+        {% for phrase in policy.revocation_phrases %}<code>{{ phrase }}</code>{% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

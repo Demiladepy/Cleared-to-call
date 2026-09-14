@@ -320,3 +320,75 @@ def test_status_badges_are_separate_from_transcript_rows(client):
     assert ".badge {" in body
     assert 'class="turn hit"' in body or 'class="turn"' in body
     assert "white-space: nowrap" not in body
+
+
+# The multi-page structure. Each page reads the batch the overview evaluated.
+
+
+def test_every_page_renders_and_marks_itself_active(client):
+    client.get("/")
+    for path, label in (("/", "Overview"), ("/audit", "Audit"), ("/policy", "Policy")):
+        response = client.get(path)
+        assert response.status_code == 200, path
+        assert 'class="active">' + label in response.text, f"{path} does not mark {label} active"
+
+
+def test_a_refused_borrower_page_shows_the_failing_rule_and_its_evidence(client):
+    client.get("/")
+    body = client.get("/accounts/A-1002").text
+    assert "Refused before dialling" in body
+    assert "OUTSIDE_CALL_WINDOW" in body
+    assert "America/Los_Angeles" in body
+    assert "FDCPA 1692c(a)(1)" in body          # the authority behind rule 1
+    assert "Fail" in body and "Pass" in body    # all four rules shown, not just the failure
+
+
+def test_a_borrower_page_agrees_with_the_row_that_linked_to_it(client):
+    """A drill-down that re-evaluated could contradict the overview."""
+    overview = client.get("/").text
+    for account_id, expected in (("A-1003", "NO_CONSENT"), ("A-1004", "ON_SUPPRESSION_LIST")):
+        assert expected in overview
+        assert expected in client.get(f"/accounts/{account_id}").text
+
+
+def test_the_opt_out_page_shows_which_turn_revoked_consent(client):
+    client.get("/")
+    body = client.get("/accounts/A-1005").text
+    assert "opted out" in body
+    assert "stop calling" in body
+    assert "Simulated call." in body
+
+
+def test_borrower_pages_never_show_a_full_phone_number(client):
+    client.get("/")
+    for account_id in ("A-1001", "A-1002", "A-1003", "A-1004", "A-1005", "A-1006", "A-1007"):
+        body = client.get(f"/accounts/{account_id}").text
+        assert "+1555010" not in body, f"{account_id} leaks an unmasked number"
+
+
+def test_an_unknown_borrower_is_a_404_not_a_crash(client):
+    client.get("/")
+    assert client.get("/accounts/A-9999").status_code == 404
+
+
+def test_the_audit_page_shows_the_whole_chain_and_its_limits(client):
+    client.get("/")
+    body = client.get("/audit").text
+    assert "Verified from genesis" in body
+    assert body.count("/accounts/A-10") >= 7
+    assert "does not stop someone replacing the entire log" in body
+
+
+def test_the_policy_page_says_what_allow_does_not_prove(client):
+    client.get("/")
+    body = client.get("/policy").text
+    for rule_id in ("R1", "R2", "R3", "R4", "R5"):
+        assert f"<strong>{rule_id}</strong>" in body
+    assert "not proof a call is lawful" in body
+    assert "G(suppressed(number) -&gt; G(!dial(number)))" in body
+
+
+def test_overview_rows_link_to_their_borrower_page(client):
+    body = client.get("/").text
+    for account_id in ("A-1001", "A-1002", "A-1005"):
+        assert f'href="/accounts/{account_id}"' in body

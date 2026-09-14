@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% set active_page = "audit" %}
+{% block content %}
+<div class="wrap page">
+  <p class="crumbs"><a href="/">Overview</a> &nbsp;/&nbsp; Audit</p>
+
+  <h1 class="display">Audit chain</h1>
+  <p class="intro">
+    One append-only line per decision, allow or refuse. Each line carries the hash of the
+    line before it, so editing, deleting or reordering any entry breaks the chain from that
+    point on.
+  </p>
+
+  {% if verification.ok %}
+  <div class="banner-big ok">
+    <div>
+      <strong>Verified from genesis &mdash; {{ verification.entries_checked }} entries</strong><br />
+      Every hash was recomputed in order. No entry has been edited, deleted, or reordered.
+    </div>
+  </div>
+  {% else %}
+  <div class="banner-big bad">
+    <div>
+      <strong>Chain broken at entry {{ verification.first_bad_index }}</strong><br />
+      {{ verification.reason }}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="grid-2">
+    <section class="card">
+      <h2>Chain state</h2>
+      <p class="sub">Publish the head hash somewhere you do not control, and any later rewrite is detectable.</p>
+      <dl class="kv">
+        <dt>Entries</dt><dd>{{ entries|length }}</dd>
+        {% for decision, count in counts|dictsort %}
+        <dt>{{ decision|title }}</dt><dd>{{ count }}</dd>
+        {% endfor %}
+        <dt>Genesis</dt><dd class="hashv">{{ "0" * 64 }}</dd>
+        <dt>Head hash</dt><dd class="hashv">{{ head_hash or "&mdash;"|safe }}</dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Check it yourself</h2>
+      <p class="sub">The verifier is not special. Anyone holding the file can run it.</p>
+      <p class="say mono">python -m cleared.cli verify</p>
+      <p class="sub" style="margin:14px 0 0">
+        Edit any line and run it again: it reports the first broken entry and why.
+      </p>
+      <p class="sub" style="margin:10px 0 0">
+        <strong>What it does not do.</strong> A chain detects changes <em>within</em> a log. It
+        does not stop someone replacing the entire log from genesis. That needs the head hash
+        anchored somewhere external, which this demo does not do.
+      </p>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Every entry</h2>
+    <p class="sub">
+      Phone numbers are masked in the log itself, not just on this page.
+      Live calls add <code>intent</code> and <code>dispatched</code> entries before the terminal one,
+      so a call lost mid-flight can never be dialled twice.
+    </p>
+    <div class="tablewrap">
+      <table class="dtable">
+        <thead>
+          <tr><th>#</th><th>Ref</th><th>Account</th><th>Decision</th><th>Reason / outcome</th><th>Recorded</th><th>prev &rarr; hash</th></tr>
+        </thead>
+        <tbody>
+        {% for entry in entries %}
+          <tr>
+            <td class="muted">{{ loop.index0 }}</td>
+            <td class="mono">{{ entry.audit_ref }}</td>
+            <td><a class="name-link mono" href="/accounts/{{ entry.account_id }}">{{ entry.account_id }}</a></td>
+            <td>
+              {% if entry.decision == "allow" %}<span class="st-pass">allow</span>
+              {% elif entry.decision == "block" %}<span class="st-fail">block</span>
+              {% else %}<span class="st-note">{{ entry.decision }}</span>{% endif %}
+            </td>
+            <td class="mono">{{ entry.block_reason or entry.outcome or "&mdash;"|safe }}</td>
+            <td class="mono">{{ entry.timestamp[:19]|replace("T", " ") }}</td>
+            <td class="hashv">{{ entry.prev_hash[:10] }} &rarr; {{ entry.hash[:10] }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="muted">The log is empty. Run the batch from the overview.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
