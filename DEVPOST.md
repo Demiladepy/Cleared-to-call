@@ -43,23 +43,75 @@ Use the address you logged into `calle auth login` with.
 
 Paste items 1–7 and 8–13 from [`SUBMISSION.md`](SUBMISSION.md) (Most Valuable Feedback survey). They are written for the form.
 
-## Try it (judges)
+## Category (dropdown)
 
-No login required for the public demo:
+**Customer outreach / engagement.**
 
-1. Open https://clearedtocall.vercel.app
-2. See three refused rows (call window, no consent, suppression list) and four cleared
-3. Switch the time preset to watch New York and Los Angeles flip opposite ways
-4. Expand **Technical details** on any row for the block code and audit ref
-5. Scroll to **Audit chain** and confirm verification passes
+The application places outbound calls to borrowers about a past-due balance,
+which is outreach. Not *Lead qualification* (nobody is being qualified), and not
+*Order / exception follow-up* (that is orders and invoices). If a judge reads the
+gate itself as the product, *Workflow & back-office automation* is defensible,
+but the task the calls perform is outreach.
 
-Local dry run (optional):
+## In one sentence, what real-world task does your CALL-E application handle?
+
+Before an AI agent places an outbound collections call, it checks the borrower's
+local call window, recorded consent, do-not-call status and required disclosure,
+refuses the call with the named rule if any check fails, and otherwise places it
+through CALL-E, suppressing the number if the borrower asks to stop being called.
+
+## Testing instructions for application
+
+**No login, no credentials, nothing dials.** Live calling is disabled on the
+public deployment by design: a URL anyone can open should not be able to ring a
+real phone or spend credits.
+
+**1. Public demo (2 minutes)** — https://clearedtocall.vercel.app
+
+1. The batch holds seven fictional borrowers. Three are refused before anything
+   dials, each for a different reason: `OUTSIDE_CALL_WINDOW` (06:30 local in Los
+   Angeles), `NO_CONSENT`, and `ON_SUPPRESSION_LIST`.
+2. Switch the time preset from **Mid-morning** to **Late evening**. At the same
+   instant New York flips ALLOW → BLOCK and Los Angeles flips BLOCK → ALLOW,
+   because rule 1 reads each borrower's stored timezone and never infers it from
+   the phone number.
+3. Expand **Technical details** on any row for the block code, the evidence behind
+   it, and the audit reference.
+4. Open the opt-out borrower's transcript: the recipient says "stop calling me",
+   the call ends, and the number is added to the suppression list. That call is
+   simulated, and the page says so.
+5. Scroll to **Audit chain**: each entry carries the hash of the one before it,
+   and verification passes.
+
+**2. Local run (5 minutes)** — Python 3.11+ and Node 20+.
 
 ```bash
-pip install -e ".[demo,dev]"
-python -m demo.app
-python -m cleared.cli run --now 2026-08-28T13:30:00Z --fresh
+git clone https://github.com/Demiladepy/Cleared-to-call.git
+cd Cleared-to-call
+python3 -m venv .venv
+.venv/bin/pip install -e ".[demo,dev]"      # Windows: .venv\Scripts\pip
+.venv/bin/python -m pytest                  # 277 tests
+.venv/bin/python -m cleared.cli run --now 2026-08-28T13:30:00Z --fresh
+.venv/bin/python -m cleared.cli verify      # audit chain check
 ```
+
+To see tamper detection, edit any line in `runtime/audit.jsonl` and run
+`verify` again: it reports the first broken entry.
+
+**3. The Agent Skill on its own** — merged upstream as
+https://github.com/CALLE-AI/awesome-phone-call-agents/pull/574. No dependencies:
+
+```bash
+node skills/cleared-to-call/scripts/evaluate-account.mjs --file skills/cleared-to-call/assets/example-accounts.json --account-id A-1002 --now 2026-08-28T13:30:00Z
+node skills/cleared-to-call/scripts/check-revocation.mjs --utterance "take me off your list"
+node skills/cleared-to-call/scripts/check-revocation.test.mjs
+```
+
+Exit codes: `0` allow, `2` refuse, `3` opt-out detected.
+
+**Live calling** needs a logged-in CALL-E CLI and `--execute`. It was run against
+the real provider; see `FEEDBACK.md` for what happened, including why calls to
+Nigerian and Indian numbers never connected.
 
 ## Before you click Submit
 

@@ -269,7 +269,9 @@ remain responsible for their compliance position.
 Requires Python 3.11+ and Node 20+. No credentials, no credits, nothing dials.
 
 ```bash
-python -m venv .venv && .venv/Scripts/python -m pip install -e ".[demo,dev]"
+python3 -m venv .venv
+.venv/bin/pip install -e ".[demo,dev]"      # Windows: .venv\Scripts\pip
+source .venv/bin/activate                   # Windows: .venv\Scripts\activate
 ```
 
 Run the batch in dry run:
