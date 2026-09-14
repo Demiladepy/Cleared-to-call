@@ -69,13 +69,21 @@ start/end timestamps, no transcript, `hangup_type: ByCallee`. The phone never
 rang — the carrier rejected international caller ID. We had mapped `DECLINED` to
 "consumer refused to pay" and were writing that into an append-only audit log.
 Caught it only because duration was zero. `ByCallee` is actively wrong here: no
-callee was involved.
+callee was involved. It is not one country or one status: a later call to an
+Indian number, which `plan_call` had accepted with `ready_to_run: true`, returned
+the same signature as `FAILED` — zero duration, identical start/end timestamps,
+`ByCallee`, no transcript. And that run's `post_summary` said *"the recipient may
+be busy or unavailable, so you can confirm retrying in about 45 minutes"*, which
+is a wrong diagnosis with a recommendation attached: the carrier rejected the
+caller ID, and retrying will fail identically. In collections, advice to re-dial
+someone who was never reached has its own legal exposure.
 
-**4. Destination reachability is invisible until you spend a credit.** `NG`
-plans with `ready_to_run: false`; `IN` plans cleanly and connects. Nigeria is
-reachable only over international lines that local carriers reject — which we
-learned from support material, not the API. No endpoint or doc says which
-destinations work.
+**4. `ready_to_run: true` is not a reachability guarantee.** `NG` plans with
+`ready_to_run: false`. `IN` plans cleanly — plan id, confirm token, everything —
+and then fails at the carrier with zero duration. `plan_call` is an excellent
+pre-flight that validates everything except whether the call can physically be
+delivered, and no endpoint or doc says which destinations are reachable or need a
+local line. Two countries, two credits, no connected call.
 
 **5. `plan_call` never echoes the destination in a structured field.** It appears
 only inside `confirm_summary` prose, masked: "Ready to place the call immediately

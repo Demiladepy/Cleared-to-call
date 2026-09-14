@@ -92,6 +92,22 @@ We caught it because the duration was zero, and now map every provider status to
 
 `ByCallee` is actively misleading here. No callee was involved.
 
+**It is not one country and not one status.** A later call to an Indian number,
+which `plan_call` had accepted with `ready_to_run: true`, returned the identical
+signature under a *different* status: `FAILED`, `duration_seconds: 0`,
+`started_at` and `ended_at` both `2026-09-14T05:07:48Z`, `hangup_type: ByCallee`,
+no transcript. Two countries, two carriers, two status strings, one underlying
+cause, and nothing in the vocabulary distinguishes it from a person hanging up.
+
+**Worse, the platform's own summary misdiagnoses it.** That run's `post_summary`
+reads: *"The first call did not connect or complete; the recipient may be busy or
+unavailable, so you can confirm retrying in about 45 minutes."* The recipient was
+neither busy nor unavailable; their carrier rejected the caller ID, and retrying
+in 45 minutes will fail identically. In a collections context that is advice to
+re-dial someone who was never reached, and call frequency is itself regulated. An
+integrator who surfaces `post_summary` to an operator is passing on a wrong
+diagnosis with a recommendation attached.
+
 **Fix.** Separate the transport outcome from any attribution. A `failure_reason`
 distinguishing `carrier_rejected`, `unallocated_number`, `user_busy` and
 `user_declined` would let integrators tell "we could not reach them" from "they
@@ -110,13 +126,21 @@ which we learned from support material rather than from the API.
 No endpoint or document lists which destinations are reachable, or whether a
 destination needs a local line provisioned.
 
+**`ready_to_run: true` is not a reachability guarantee.** This is the part that
+cost us most. India planned cleanly — `ready_to_run: true`, a plan id, a confirm
+token — and then failed at the carrier with zero duration. The only signal that
+would have saved the credit is one the platform does not expose. `plan_call` is
+otherwise an excellent pre-flight; it validates everything except whether the
+call can physically be delivered.
+
 **Impact.** A team picks a demo market, builds for it, and discovers at the first
-live call that their market is unreachable. We lost a day to this and had to
-re-source a test number in another country. The information exists inside CALL-E;
-it just is not queryable.
+live call that their market is unreachable. We lost a day to Nigeria, re-sourced
+a test number in India, and lost the credit there too. The information exists
+inside CALL-E; it just is not queryable.
 
 **Fix.** Either a `get_destination_support(region)` tool or a published matrix
-with a "local line required" column. Failing that, make `plan_call`'s refusal
+with a "local line required" column, and ideally a reachability check folded into
+`plan_call` so `ready_to_run` means what it says. Failing that, make `plan_call`'s refusal
 name the cause in a structured field rather than in a sentence.
 
 ---
