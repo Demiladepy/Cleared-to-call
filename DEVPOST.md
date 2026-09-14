@@ -33,7 +33,7 @@ The public demo runs a batch of fictional accounts: three are refused with named
 
 ## What it does (short)
 
-A consent-and-compliance gate for AI collection calls. It refuses with a named reason when a call would be unlawful, honors "stop calling me" live, and emits a tamper-evident record proving each call was lawful or provably refused.
+A pre-dial compliance gate for AI collection calls: it refuses a call with a named reason when a policy precondition fails, ends and suppresses on a live opt-out, and records every allow or refuse in a hash-chained decision log.
 
 ## CALL-E account email
 

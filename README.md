@@ -2,8 +2,8 @@
 
 **Tagline:** Your AI can place the call. This decides whether it is allowed to.
 
-**A consent-and-compliance gate for AI collection calls.** The call either happens
-lawfully, or provably does not.
+**A pre-dial compliance gate for AI collection calls.** Nothing dials unless the
+policy clears it, and every refusal names the rule that caused it.
 
 | | |
 | --- | --- |
@@ -45,9 +45,7 @@ community repo; the Python implementation, tests, and demo live here.
 
 ### What it does (one sentence)
 
-A consent-and-compliance gate for AI collection calls that refuses with a named
-reason when a call would be unlawful, honors "stop calling me" live, and emits a
-tamper-evident record proving each call was lawful or provably refused.
+A pre-dial compliance gate for AI collection calls: it refuses a call with a named reason when a policy precondition fails, ends and suppresses on a live opt-out, and records every allow or refuse in a hash-chained decision log.
 
 ### Built with
 
@@ -86,7 +84,7 @@ Three things pointed at the same gap:
    missing layer: something that decides whether the call may happen at all.
 2. **`apps/python/consent-gate`** (ConsentGate) covers adjacent pre-flight checks
    but excludes financial content by design. Collections need a gate built for
-   that domain, with live revocation and tamper-evident proof.
+   that domain, with live revocation and a hash-chained decision record.
 3. **CALL-E design principles** say never infer timezone from a phone number.
    The API has no `recipient_timezone` field on `plan_call`, so every integrator
    rebuilds the hardest part. This project makes that logic explicit, testable,
@@ -381,6 +379,16 @@ tests/             277 tests
 - **One jurisdiction:** US federal (TCPA / FDCPA / Reg F) only.
 - **Five rules:** no state caps, reassigned-number DB, or litigator lists.
 - **Not a dialer, not legal advice, not a CRM integration.**
+- **`ALLOW` is necessary, not sufficient.** Passing the declared policy is not proof a
+  call is lawful or authorized; the operator remains responsible.
+- **The hash chain detects edits, deletions and reordering** within a log. It does
+  not stop someone replacing the entire log from genesis. That needs an external
+  anchor for the head hash, which is out of scope.
+- **Skill vs. package.** The upstream Agent Skill is offline advisory helpers: it
+  evaluates records and flags opt-out phrases, and the host persists suppression
+  and audit records. This repository's Python package is one such host, and is
+  what implements the audit log, suppression writes and post-call checks. The
+  maintainer's review of PR #574 drew that line precisely, and it is the right one.
 
 ---
 

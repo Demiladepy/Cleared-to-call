@@ -133,10 +133,7 @@ compares every verdict.
   calling is disabled on the deployment and the page says so)
 - **Video:** unlisted YouTube link, ~3 minutes
 - **CALL-E account email:** the address you logged into the CLI with
-- **What it does:** a consent-and-compliance gate for AI collection calls —
-  it refuses with a named reason when a call would be unlawful, honors "stop
-  calling me" live, and emits a tamper-evident record proving each call was
-  lawful or provably refused.
+- **What it does:** a pre-dial compliance gate for AI collection calls: it refuses a call with a named reason when a policy precondition fails, ends and suppresses on a live opt-out, and records every allow or refuse in a hash-chained decision log.
 
 ## Video script (~3 min)
 
@@ -194,7 +191,7 @@ provider, which is the part nobody else will have.
 | 1:00–2:15 | **The live call.** Click "Call for real" on a cleared account. It opens with the full disclosure. You say "stop calling me." The agent acknowledges and hangs up. The row flips to `opt_out`, the number lands on the suppression list. | Phone + demo page |
 | 2:15–2:35 | Click **Run batch** again. That account is now `ON_SUPPRESSION_LIST`. The opt-out is permanent, with nobody in the loop. | Demo page |
 | 2:35–2:50 | Another cleared account reaches promise-to-pay; the structured result fills in. | Demo page |
-| 2:50–3:00 | The audit chain: every decision, hashed to the one before it, verified. "Every call provably lawful — or provably refused." | Audit panel |
+| 2:50–3:00 | The audit chain: every decision, hashed to the one before it, verified. "Nothing dials unless the policy clears it — and every refusal says why." | Audit panel |
 
 Notes for the shoot:
 

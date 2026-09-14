@@ -169,8 +169,11 @@ def print_run(run: BatchRun, now: datetime) -> None:
     for record in run.records:
         if record.revocation:
             print(
-                f"  opt-out - {record.account.account_id} said "
-                f"\"{record.revocation.text}\" -> number suppressed"
+                # The utterance is never echoed: a recipient can say anything,
+                # including their own number. Same fix CALL-E's maintainer made
+                # to the skill's check-revocation.mjs before merging it.
+                f"  opt-out - {record.account.account_id} matched "
+                f"\"{record.revocation.matched_phrase}\" -> number suppressed"
             )
         if record.error:
             print(f"  error   - {record.account.account_id}: {record.error}")
