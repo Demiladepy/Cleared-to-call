@@ -139,24 +139,51 @@ compares every verdict.
 
 ## Video script (~3 min)
 
-Set up once, off camera:
+**Use CALL-E's official US testing hotline, not a personal number.** Posted by
+the maintainer in Discord #announcements on 7 September, after they tightened
+calling restrictions for some regions:
 
-```bash
-# In fixtures/demo-live.json, set A-9001 to the consenting person's number AND
-# their real IANA timezone (America/New_York, Asia/Kolkata, Asia/Singapore,
-# Australia/Sydney). Rule 1 reads that timezone; it never guesses from the number.
-
-# Confirm it dials and the destination can be checked, for free.
-python -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region US
-
-# Start the demo with the live button armed. Use the same --region as preflight.
-python -m demo.app --accounts fixtures/demo-live.json --region US --allow-live
+```text
++1 276-322-9632  (English)   ->  +12763229632, America/New_York (area code 276 = Virginia)
 ```
 
-Record while it is between 08:00 and 21:00 where the recipient is. Outside that
-window the gate correctly refuses the live call, which is right but costs a take.
-If preflight reports the destination as unchecked, `--execute` refuses too;
-decide about `--allow-unverified-destination` off camera, not during the take.
+It is a published test line, not a private individual, so there is no consent
+question and nobody gets woken up. It is already row `A-9003` in the gitignored
+`fixtures/operator-test.json`.
+
+Personal numbers in NG and IN were both tried and both failed at the carrier:
+zero duration, identical start and end timestamps, `hangup_type: ByCallee`, no
+transcript. That is the international line being rejected, not a country problem,
+so a third non-US number is not worth a credit.
+
+**The window matters.** Virginia is UTC-4 in September, so the gate only allows
+this call between **12:00 and 01:00 UTC** (13:00-02:00 Lagos). Before 12:00 UTC
+it refuses with `OUTSIDE_CALL_WINDOW`, which is correct behaviour and still costs
+you a take.
+
+Already verified for you, for free: the gate clears `A-9003` once the window
+opens, and `plan_call` accepts the US plan with `ready_to_run: true`, a plan id,
+a confirm token, and a destination check matching on `...9632`.
+
+Set up once, off camera, once it is past 12:00 UTC:
+
+```bash
+# One live call, capturing the payload. This is the B1 evidence.
+python -m cleared.cli run --execute --accounts fixtures/operator-test.json --account-id A-9003 --region US --capture-payload tests/data/call_run_connected.json
+
+# Then start the demo with the live button armed, for the on-camera take.
+python -m demo.app --accounts fixtures/operator-test.json --region US --allow-live
+```
+
+If the first command returns a transcript, B1 is closed: the captured payload
+carries CALL-E's real speaker labels, which is the last unverified assumption in
+the whole system.
+
+**The live opt-out beat cannot be done against the hotline** - it is a test line,
+not a person who can say "stop calling me". Film that beat from the dry-run batch
+and say on camera that it is simulated. The live call still proves the disclosure,
+the structured result, the B3 interlock and the audit chain against a real
+provider, which is the part nobody else will have.
 
 | Time | Beat | On screen |
 | --- | --- | --- |
