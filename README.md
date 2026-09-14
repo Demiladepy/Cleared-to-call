@@ -217,7 +217,8 @@ R5  G(revocation_detected -> F(end_call & suppressed(number)))
 
 ## What we learned building on CALL-E
 
-Condensed feedback for the hackathon survey (full list in [`SUBMISSION.md`](SUBMISSION.md)):
+Condensed feedback for the hackathon survey. The full write-up, with the live
+evidence behind each finding, is in [`FEEDBACK.md`](FEEDBACK.md):
 
 1. **`plan_call` has no timezone field** — integrators rebuild recipient-local-time logic; DST errors are liability.
 2. **No structured opt-out on `get_call_run`** — `COMPLETED` looks the same whether the person opted out or paid.
@@ -391,7 +392,8 @@ tests/             277 tests
 | Live demo (Vercel) | Done |
 | Agent Skill PR #574 | Open |
 | Demo video | You: [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md) |
-| Devpost form | You: copy sections above + feedback from [`SUBMISSION.md`](SUBMISSION.md) |
+| Devpost form | You: copy sections above |
+| Feedback survey | You: submit [`FEEDBACK.md`](FEEDBACK.md) |
 
 ---
 
