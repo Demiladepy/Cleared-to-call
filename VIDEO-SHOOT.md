@@ -23,43 +23,61 @@ No phone, no credits, no consent needed.
 | Suppression replay | 2:15–2:35 | Same call as above |
 | Promise-to-pay | 2:35–2:50 | Optional second cleared account |
 
-## Indian number (`+91`, `Asia/Kolkata`)
+## The live call: CALL-E's official US test hotline
 
-CALL-E supports **India / English**. Your gate policy is US federal (TCPA/FDCPA); say that in the video: the demo encodes US rules, while the test recipient happens to be in India.
+Two personal numbers were tried and both failed at the carrier, in NG and IN:
+zero duration, identical start and end timestamps, `hangup_type: ByCallee`, no
+transcript. The phone never rang either time. That is the international line
+being rejected, not a country problem, so a third non-US number is not worth a
+credit.
 
-### Before the live take
+The maintainer posted a US testing hotline in Discord #announcements on
+7 September for exactly this:
 
-1. **Get consent.** Rule 2 requires `consent_on_file: true` and a real `consent_timestamp`. Verbal on camera is fine if you state it clearly: *"Do you consent to a test collection call from this demo?"* — then set the timestamp to that moment in `fixtures/demo-live.json`.
-2. **Set the fixture** (gitignored, never commit):
+```text
++1 276-322-9632  (English)  ->  +12763229632, America/New_York
+```
 
-   ```json
-   {
-     "account_id": "A-9001",
-     "phone_e164": "+91XXXXXXXXXX",
-     "timezone": "Asia/Kolkata",
-     "consent_on_file": true,
-     "consent_timestamp": "2026-09-14T10:30:00Z"
-   }
-   ```
+A published test line, not a private individual: no consent to obtain, nobody
+woken up. It is already row `A-9003` in `fixtures/operator-test.json`
+(gitignored).
 
-3. **Shoot between 08:00 and 21:00 IST.** The live button re-checks real time, not the demo preset.
-4. **Preflight (free):**
+**Already verified, without dialling:** the gate clears `A-9003` once the window
+opens, and `plan_call` accepts the US plan — `ready_to_run: true`, a plan id, a
+confirm token, and the destination check matching on `...9632`.
+
+### The window is the one constraint
+
+Area code 276 is Virginia, UTC-4 in September, so rule 1 allows the call only
+between **12:00 and 01:00 UTC** (13:00-02:00 Lagos). Before 12:00 UTC it refuses
+with `OUTSIDE_CALL_WINDOW`. That is the product working, but it costs a take.
+
+### The take
+
+1. **Capture the payload first, off camera.** This is the B1 evidence:
 
    ```powershell
-   .venv\Scripts\python.exe -m cleared.cli preflight --accounts fixtures/demo-live.json --account-id A-9001 --region IN
+   .venv\Scripts\python.exe -m cleared.cli run --execute --accounts fixtures/operator-test.json --account-id A-9003 --region US --capture-payload tests/data/call_run_connected.json
    ```
 
-   Wait for `ready_to_run: true` before spending a credit.
+   If it returns a transcript, B1 is closed: the payload carries CALL-E's real
+   speaker labels, the last unverified assumption in the system.
 
-5. **Start demo armed:**
+2. **Then arm the demo for the on-camera take:**
 
    ```powershell
-   .venv\Scripts\python.exe -m demo.app --accounts fixtures/demo-live.json --region IN --allow-live
+   .venv\Scripts\python.exe -m demo.app --accounts fixtures/operator-test.json --region US --allow-live
    ```
 
-6. On the call: let the disclosure play, then say **"Stop calling me."** Run batch again to show `ON_SUPPRESSION_LIST`.
+3. Let the disclosure play. Show the structured result, the audit entry, and the
+   chain still verifying.
 
-Budget three credits: rehearsal, opt-out take, spare.
+**The opt-out beat cannot be done against a hotline** — it cannot ask to be taken
+off a list. Film it from the dry-run batch and say plainly on camera that that
+beat is simulated while the call you just placed was real. Claiming otherwise is
+the one thing that would actually sink the entry.
+
+Budget two credits: one capture run, one on-camera take.
 
 ## If consent is not ready yet
 

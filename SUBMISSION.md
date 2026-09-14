@@ -16,7 +16,7 @@ Everything needed to ship, plus the four things only you can supply.
 
 - 277 tests green, demo live at https://clearedtocall.vercel.app
 - CALL-E CLI wired; preflight, capture-run, parse-run commands work
-- Agent Skill ready; upstream PR needs one force-push (see below)
+- Agent Skill submitted upstream: PR #574, open and mergeable
 - Devpost copy ready in [`DEVPOST.md`](DEVPOST.md)
 - Shoot checklist in [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md)
 
@@ -25,17 +25,18 @@ Everything needed to ship, plus the four things only you can supply.
 ### 1. Demo video (~3 min)
 
 See [`VIDEO-SHOOT.md`](VIDEO-SHOOT.md). Most of the video uses the public demo
-with no phone. The live opt-out beat needs:
+with no phone at all. The one live beat uses CALL-E's official US test hotline,
+`A-9003` in `fixtures/operator-test.json` — see the Video script section below
+for the number, the window and the exact commands.
 
-- **Prior express consent** on file for `A-9001` (the gate will refuse
-  `NO_CONSENT` until you set `consent_on_file: true` and a timestamp after they
-  agree)
-- **08:00–21:00 in the recipient's timezone** (`Asia/Kolkata` for India)
-- **`--region IN`** for an Indian number
-- Preflight showing `ready_to_run: true` before spending a credit
+- **After 12:00 UTC**, or rule 1 refuses `OUTSIDE_CALL_WINDOW` (correctly)
+- **`--region US`**
+- Gate and `plan_call` are both already verified against it, for free
 
-Say in the video that the policy encodes US federal rules while your test
-recipient is in India; the gate reads `account.timezone`, not the country code.
+The live *opt-out* beat cannot use a test hotline, since it cannot ask to be
+taken off a list. Film that from the dry-run batch and say on camera that it is
+simulated; the live call still proves disclosure, structured result, the
+duplicate-call interlock and the audit chain against a real provider.
 
 ### 2. Devpost form
 
