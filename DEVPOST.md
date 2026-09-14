@@ -75,13 +75,16 @@ real phone or spend credits.
    instant New York flips ALLOW → BLOCK and Los Angeles flips BLOCK → ALLOW,
    because rule 1 reads each borrower's stored timezone and never infers it from
    the phone number.
-3. Expand **Technical details** on any row for the block code, the evidence behind
-   it, and the audit reference.
+3. **Click R. Alvarez** (or any borrower's name). Their page shows the record the
+   gate was given, all four rule results with the evidence and legal authority
+   behind each, the disclosure check, and every audit entry the account wrote.
 4. Open the opt-out borrower's transcript: the recipient says "stop calling me",
    the call ends, and the number is added to the suppression list. That call is
    simulated, and the page says so.
-5. Scroll to **Audit chain**: each entry carries the hash of the one before it,
-   and verification passes.
+5. Open **Audit** in the top nav: the whole chain, verified from genesis, with the
+   head hash and a plain statement of what a hash chain cannot detect.
+6. Open **Policy**: the five rules as data, each with its authority and the
+   temporal-logic property it enforces, and what an `ALLOW` does not prove.
 
 **2. Local run (5 minutes)** — Python 3.11+ and Node 20+.
 

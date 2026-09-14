@@ -64,8 +64,8 @@ The address you used with `calle auth login`.
 1. Open https://clearedtocall.vercel.app
 2. See three refused rows (call window, no consent, suppression list) and four cleared
 3. Switch the time preset: New York and Los Angeles flip opposite ways at the same instant
-4. Expand **Technical details** on any row for the block code and audit ref
-5. Scroll to **Audit chain** and confirm verification passes
+4. Click any borrower's name for their evidence page: every rule, its authority, the disclosure check, and their audit entries
+5. Open **Audit** and **Policy** in the top nav for the full chain and the rules as data
 
 ---
 
